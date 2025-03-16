@@ -27,6 +27,8 @@
 #if not defined(HW_NATIVE)
 
 #include "MTL/MTL.h"
+#include "MTL/Gpio.h"
+
 #include "YM2151.h"
 
 #endif
@@ -37,10 +39,34 @@
 
 static hw::Led led{};
 
-static YM2151::Interface<MTL::PIN_11,
-                         MTL::PIN_5,
-                         MTL::PIN_4,
-                         /* swap_data_bits */ true> ym2151{};
+static YM2151::Interface</* DATA8          */ MTL::PIN_11,
+                         /* CTRL5          */ MTL::PIN_5,
+                         /* CLOCK          */ MTL::PIN_4,
+                         /* AUDIO4         */ MTL::PIN_24,
+                         /* SWAP_DATA_BITS */ true> ym2151{};
+
+
+void playNote(unsigned ch_)
+{
+   // Config operator C2
+   ym2151.setOp<YM2151::AR>( ch_, YM2151::OP_C2, 0x3F);
+   ym2151.setOp<YM2151::D1R>(ch_, YM2151::OP_C2, 0);
+   ym2151.setOp<YM2151::D1L>(ch_, YM2151::OP_C2, 0);
+   ym2151.setOp<YM2151::D2R>(ch_, YM2151::OP_C2, 0);
+   ym2151.setOp<YM2151::RR>( ch_, YM2151::OP_C2, 0x3F);
+   ym2151.setOp<YM2151::TL>( ch_, YM2151::OP_C2, 0x3F);
+
+   // Config channel
+   ym2151.setCh<YM2151::CONECT>(ch_, 0);
+   ym2151.setCh<YM2151::FB>(    ch_, 0);
+   ym2151.setCh<YM2151::RL>(    ch_, 0b10);
+   ym2151.setCh<YM2151::KC>(    ch_, 0x4A);
+   ym2151.setCh<YM2151::KF>(    ch_, 0);
+   ym2151.setCh<YM2151::AMS>(   ch_, 0);
+   ym2151.setCh<YM2151::PMS>(   ch_, 0);
+
+   ym2151.noteOn(ch_, YM2151::OP_C2);
+}
 
 
 int main()
@@ -59,28 +85,30 @@ int main()
    printf("Compiler : %s\n", __VERSION__);
    printf("\n");
 
-   // Config operator C2 for channel 0
-   ym2151.setOp<YM2151::AR>( 0, YM2151::OP_C2, 0x3F);
-   ym2151.setOp<YM2151::D1R>(0, YM2151::OP_C2, 0);
-   ym2151.setOp<YM2151::D1L>(0, YM2151::OP_C2, 0);
-   ym2151.setOp<YM2151::D2R>(0, YM2151::OP_C2, 0);
-   ym2151.setOp<YM2151::RR>( 0, YM2151::OP_C2, 0x3F);
-   ym2151.setOp<YM2151::TL>( 0, YM2151::OP_C2, 0x3F);
+   playNote(0);
 
-   // Config channel 0
-   ym2151.setCh<YM2151::CONECT>(0, 0);
-   ym2151.setCh<YM2151::FB>(    0, 0);
-   ym2151.setCh<YM2151::RL>(    0, 0b11);
-   ym2151.setCh<YM2151::KC>(    0, 0x4A);
-   ym2151.setCh<YM2151::KF>(    0, 0);
-   ym2151.setCh<YM2151::AMS>(   0, 0);
-   ym2151.setCh<YM2151::PMS>(   0, 0);
-
-   ym2151.noteOn(0, YM2151::OP_C2);
-
-   printf("DONE\n");
+   usleep(200000);
 
    led = true;
+
+   static const unsigned SAMPLES = 260;
+
+   uint32_t buffer[SAMPLES];
+
+   ym2151.getSamples(buffer, SAMPLES);
+
+   for(unsigned i = 0; i < SAMPLES; ++i)
+   {
+      uint32_t data = buffer[i];
+
+      if ((i % 10) == 0) printf("\nR%04X L%04X: ", data & 0xFFFF, data >> 16);
+
+      printf(" %4d", ym2151.decodeSample(data & 0xFFFF));
+   }
+
+   printf("\n");
+
+   led = false;
 
    return 0;
 }

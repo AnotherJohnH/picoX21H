@@ -51,9 +51,10 @@ static const uint8_t OP_C2  = 0b1000;
 static const uint8_t OP_ALL = OP_M1 | OP_C1 | OP_M2 | OP_C2;
 
 
-template <unsigned PIN_DATA8, // First pin for D0-D7
-          unsigned PIN_CTRL5, // First pin for _IC, A0, _WR, _RD and _CS
+template <unsigned PIN_DATA8,  // First pin for D0-D7
+          unsigned PIN_CTRL5,  // First pin for _IC, A0, _WR, _RD and _CS
           unsigned PIN_CLOCK,
+          unsigned PIN_AUDIO4, // First pin for SH2, SH1, SO, CLK
           bool     SWAP_DATA_BITS = false> // Pin for clock
 class Interface
 {
@@ -206,6 +207,49 @@ public:
       return shadow[addr_];
    }
 
+   void getSamples(uint32_t* buffer_, unsigned n_)
+   {
+      while(true)
+      {
+         while(clk);
+         while(not clk);
+         if (sam1) break;
+      }
+
+      while(true)
+      {
+         while(clk);
+         while(not clk);
+         if (not sam1) break;
+      }
+
+      for(unsigned i = 0; i < n_; ++i)
+      {
+         uint32_t data = 0;
+
+         for(unsigned i = 0; i < 32; ++i)
+         {
+            data >>= 1;
+
+            if (sd)
+               data |= 1 << 31;
+
+            while(clk);
+            while(not clk);
+         }
+
+         buffer_[i] = data;
+      }
+   }
+
+   signed decodeSample(uint16_t sample_)
+   {
+      int16_t  mantissa = ((sample_ >> 3) & 0x3FF) << 4;
+      unsigned exp      = (sample_ >> 13) ^ 0b111;
+
+      return mantissa >> exp;
+   }
+
 private:
    static uint8_t swapBits(uint8_t value_)
    {
@@ -302,11 +346,17 @@ private:
    static constexpr bool A0_DATA = true;
 
    MTL::Gpio::InOut<8, PIN_DATA8> data8;
-   MTL::Gpio::Out  <1, PIN_CTRL5+0> _ic;
-   MTL::Gpio::Out  <1, PIN_CTRL5+1> a0;
-   MTL::Gpio::Out  <1, PIN_CTRL5+2> _wr;
-   MTL::Gpio::Out  <1, PIN_CTRL5+3> _rd;
-   MTL::Gpio::Out  <1, PIN_CTRL5+4> _cs;
+
+   MTL::Gpio::Out<1, PIN_CTRL5+0> _ic;
+   MTL::Gpio::Out<1, PIN_CTRL5+1> a0;
+   MTL::Gpio::Out<1, PIN_CTRL5+2> _wr;
+   MTL::Gpio::Out<1, PIN_CTRL5+3> _rd;
+   MTL::Gpio::Out<1, PIN_CTRL5+4> _cs;
+
+   MTL::Gpio::In<1, PIN_AUDIO4+0> sam2;
+   MTL::Gpio::In<1, PIN_AUDIO4+1> sam1;
+   MTL::Gpio::In<1, PIN_AUDIO4+2> sd;
+   MTL::Gpio::In<1, PIN_AUDIO4+3> clk;
 
    uint8_t shadow[256];
 };
