@@ -24,20 +24,23 @@
    
 #include <cstdio>
 
-#include "MTL/MTL.h"
-#include "MTL/Digital.h"
+#if not defined(HW_NATIVE)
 
+#include "MTL/MTL.h"
 #include "YM2151.h"
 
-#include "MTL/Gpio.h"
+#endif
 
-#define HW_DESCR ""
+#include "hw/hw.h"
 
+// ------------------------------------------------------------------------------------
 
-YM2151::Interface<MTL::PIN_11,
-                  MTL::PIN_5,
-                  MTL::PIN_4,
-                  /* swap_data_bits */ true> ym2151{};
+static hw::Led led{};
+
+static YM2151::Interface<MTL::PIN_11,
+                         MTL::PIN_5,
+                         MTL::PIN_4,
+                         /* swap_data_bits */ true> ym2151{};
 
 
 int main()
@@ -47,7 +50,7 @@ int main()
    printf("\e[1,1H");
 
    printf("\n");
-   printf("Program  : picoX21-h (%s)\n", HW_DESCR);
+   printf("Program  : picoX21-H (%s)\n", HW_DESCR);
    printf("Author   : Copyright (c) 2025 John D. Haughton\n");
    printf("License  : MIT\n");
    printf("Version  : %s\n", PLT_VERSION);
@@ -56,7 +59,7 @@ int main()
    printf("Compiler : %s\n", __VERSION__);
    printf("\n");
 
-   // Config operator
+   // Config operator C2 for channel 0
    ym2151.setOp<YM2151::AR>( 0, YM2151::OP_C2, 0x3F);
    ym2151.setOp<YM2151::D1R>(0, YM2151::OP_C2, 0);
    ym2151.setOp<YM2151::D1L>(0, YM2151::OP_C2, 0);
@@ -64,7 +67,7 @@ int main()
    ym2151.setOp<YM2151::RR>( 0, YM2151::OP_C2, 0x3F);
    ym2151.setOp<YM2151::TL>( 0, YM2151::OP_C2, 0x3F);
 
-   // Config channel
+   // Config channel 0
    ym2151.setCh<YM2151::CONECT>(0, 0);
    ym2151.setCh<YM2151::FB>(    0, 0);
    ym2151.setCh<YM2151::RL>(    0, 0b11);
@@ -76,6 +79,8 @@ int main()
    ym2151.noteOn(0, YM2151::OP_C2);
 
    printf("DONE\n");
+
+   led = true;
 
    return 0;
 }
