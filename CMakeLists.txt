@@ -39,7 +39,9 @@ endif()
 add_subdirectory(Source/hw)
 
 foreach(hw_config ${hw_config_list})
-   add_executable(picoX21H_${hw_config} Source/picoX21H.cpp)
+   add_executable(picoX21H_${hw_config}
+                  Source/picoX21H.cpp
+                  Source/audio.cpp)
    target_compile_definitions(picoX21H_${hw_config} PRIVATE HW_${hw_config})
    target_link_libraries(picoX21H_${hw_config} PRIVATE HW)
 endforeach()

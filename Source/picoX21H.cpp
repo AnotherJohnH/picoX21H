@@ -21,8 +21,9 @@
 //------------------------------------------------------------------------------
 
 // \brief DX21 hybrid simulation for Raspberry Pi Pico
-   
+
 #include <cstdio>
+#include <unistd.h>
 
 #if not defined(HW_NATIVE)
 
@@ -30,6 +31,8 @@
 #include "MTL/Gpio.h"
 
 #include "YM2151.h"
+#include "PioYMDAC.h"
+#include "PioI2S_S16.h"
 
 #endif
 
@@ -37,29 +40,31 @@
 
 // ------------------------------------------------------------------------------------
 
-static hw::Led led{};
+static const unsigned YM2151_CLOCK_HZ = 3579545;
 
-static YM2151::Interface</* DATA8          */ MTL::PIN_11,
-                         /* CTRL5          */ MTL::PIN_5,
-                         /* CLOCK          */ MTL::PIN_4,
-                         /* AUDIO4         */ MTL::PIN_24,
-                         /* SWAP_DATA_BITS */ true> ym2151{};
+static YM2151::Interface<MTL::Pio0,
+                         /* CTRL5    */ MTL::PIN_5,
+                         /* DATA8    */ MTL::PIN_11,
+                         /* REV_DATA */ true> ym2151{};
+
+static hw::Led led{};
 
 
 void playNote(unsigned ch_)
 {
    // Config operator C2
+   ym2151.setOp<YM2151::MUL>(ch_, YM2151::OP_C2, 0x01);
    ym2151.setOp<YM2151::AR>( ch_, YM2151::OP_C2, 0x3F);
    ym2151.setOp<YM2151::D1R>(ch_, YM2151::OP_C2, 0);
    ym2151.setOp<YM2151::D1L>(ch_, YM2151::OP_C2, 0);
    ym2151.setOp<YM2151::D2R>(ch_, YM2151::OP_C2, 0);
    ym2151.setOp<YM2151::RR>( ch_, YM2151::OP_C2, 0x3F);
-   ym2151.setOp<YM2151::TL>( ch_, YM2151::OP_C2, 0x3F);
+   ym2151.setOp<YM2151::TL>( ch_, YM2151::OP_C2, 0x00);
 
    // Config channel
    ym2151.setCh<YM2151::CONECT>(ch_, 0);
    ym2151.setCh<YM2151::FB>(    ch_, 0);
-   ym2151.setCh<YM2151::RL>(    ch_, 0b10);
+   ym2151.setCh<YM2151::RL>(    ch_, 0b11);
    ym2151.setCh<YM2151::KC>(    ch_, 0x4A);
    ym2151.setCh<YM2151::KF>(    ch_, 0);
    ym2151.setCh<YM2151::AMS>(   ch_, 0);
@@ -68,6 +73,8 @@ void playNote(unsigned ch_)
    ym2151.noteOn(ch_, YM2151::OP_C2);
 }
 
+
+extern void startAudio(unsigned);
 
 int main()
 {
@@ -85,30 +92,20 @@ int main()
    printf("Compiler : %s\n", __VERSION__);
    printf("\n");
 
+   ym2151.download(YM2151_CLOCK_HZ, /* CLK */ MTL::PIN_4);
+   ym2151.start();
+
+   startAudio(YM2151_CLOCK_HZ);
+
    playNote(0);
 
-   usleep(200000);
-
-   led = true;
-
-   static const unsigned SAMPLES = 260;
-
-   uint32_t buffer[SAMPLES];
-
-   ym2151.getSamples(buffer, SAMPLES);
-
-   for(unsigned i = 0; i < SAMPLES; ++i)
+   while(true)
    {
-      uint32_t data = buffer[i];
+      led = not led;
 
-      if ((i % 10) == 0) printf("\nR%04X L%04X: ", data & 0xFFFF, data >> 16);
-
-      printf(" %4d", ym2151.decodeSample(data & 0xFFFF));
+      usleep(500000);
    }
-
-   printf("\n");
-
-   led = false;
 
    return 0;
 }
+

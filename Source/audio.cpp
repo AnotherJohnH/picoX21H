@@ -20,56 +20,46 @@
 // SOFTWARE.
 //------------------------------------------------------------------------------
 
+// \brief Audio processing
+
+
+#if not defined(HW_NATIVE)
+
 #include "MTL/MTL.h"
-#include "MTL/Digital.h"
+#include "MTL/Pins.h"
 
-#include "YM2151.h"
+#include "PioYMDAC.h"
+#include "PioI2S_S16.h"
 
-#include "MTL/Gpio.h"
+static MTL::PioYMDAC<MTL::Pio1>   ymdac_in{};
+static MTL::PioI2S_S16<MTL::Pio0> i2s_out{};
 
-inline void wait(volatile uint32_t n)
+#endif
+
+
+static void runDAC()
 {
-   while(n--);
-}
-
-int main()
-{
-   MTL::Gpio::InOut<1, MTL::PIN_14> pin_io;
-   MTL::Gpio::Out<1,   MTL::PIN_15> pin_status;
-
-   unsigned state = 0;
-
    while(true)
    {
-      switch(state)
-      {
-      case 0:
-         pin_io.setOut();
-         pin_io = true;
-         break;
+      int16_t left, right;
 
-      case 1:
-         pin_io.setOut();
-         pin_io = false;
-         break;
+      ymdac_in.pop(left, right);
 
-      case 2:
-         pin_io.setOut();
-         pin_io = true;
-         break;
+      // TODO chorus and maybe a bit of reverb
 
-      case 3:
-         pin_io.setIn();
-         break;
-
-      case 4:
-         pin_status = pin_io;
-         break;
-      }
-
-      state = (state + 1) % 5;
-      wait(10000);
+      uint32_t packed = (left << 16) | (right & 0xFFFF);
+      i2s_out.push(packed);
    }
+}
 
-   return 0;
+
+void startAudio(unsigned ym2151_clock_hz_)
+{
+   ymdac_in.download(ym2151_clock_hz_, /* SD SAM1 CLK */ MTL::PIN_21);
+   ymdac_in.start();
+
+   i2s_out.download(ym2151_clock_hz_, /* SD */ MTL::PIN_25, /* LRCLK SCLK */ MTL::PIN_26);
+   i2s_out.start();
+
+   MTL_start_core(1, runDAC);
 }

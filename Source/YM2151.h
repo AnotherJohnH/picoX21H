@@ -51,23 +51,43 @@ static const uint8_t OP_C2  = 0b1000;
 static const uint8_t OP_ALL = OP_M1 | OP_C1 | OP_M2 | OP_C2;
 
 
-template <unsigned PIN_DATA8,  // First pin for D0-D7
+template <typename PIO_TYPE,
           unsigned PIN_CTRL5,  // First pin for _IC, A0, _WR, _RD and _CS
-          unsigned PIN_CLOCK,
-          unsigned PIN_AUDIO4, // First pin for SH2, SH1, SO, CLK
-          bool     SWAP_DATA_BITS = false> // Pin for clock
+          unsigned PIN_DATA8,  // First pin for D0-D7
+          bool     REV_DATA = false>
 class Interface
 {
 public:
-   Interface()
-   {
-      MTL::Pio0     pio;
-      MTL::PioClock clock;
+   Interface() = default;
 
-      signed sd = clock.download(pio, CLOCK, PIN_CLOCK);
+   //! Initialize bus signals and YM2151 registers
+   void reset()
+   {
+      data8.setHiZ();
+
+      a0  = A0_ADDR;
+      _cs = _rd = _wr = true;
+      wait_ns(T_AH);
+
+      _ic = false;
+      usleep(T_INIT);
+      _ic = true;
+
+      memset(shadow, 0, sizeof(shadow));
+   }
+
+   signed download(unsigned clock_freq_,
+                   unsigned pin_clock_)
+   {
+      sd = clock.download(pio, clock_freq_, pin_clock_);
+      return sd;
+   }
+
+   void start()
+   {
       pio.start(1 << sd);
 
-      init();
+      reset();
    }
 
    void noteOn(unsigned channel_, uint8_t op_mask_ = OP_ALL)
@@ -85,7 +105,7 @@ public:
    {
       switch(PARAM)
       {
-      case TEST:  writeReg(  0x01,       value_); break;
+      case TEST:    writeReg(  0x01,       value_); break;
 
       case NFRQ:    writeField(0x0F, 9, 5, value_); break;
       case NE:      writeField(0x0F, 7, 1, value_); break;
@@ -207,73 +227,14 @@ public:
       return shadow[addr_];
    }
 
-   void getSamples(uint32_t* buffer_, unsigned n_)
-   {
-      while(true)
-      {
-         while(clk);
-         while(not clk);
-         if (sam1) break;
-      }
-
-      while(true)
-      {
-         while(clk);
-         while(not clk);
-         if (not sam1) break;
-      }
-
-      for(unsigned i = 0; i < n_; ++i)
-      {
-         uint32_t data = 0;
-
-         for(unsigned i = 0; i < 32; ++i)
-         {
-            data >>= 1;
-
-            if (sd)
-               data |= 1 << 31;
-
-            while(clk);
-            while(not clk);
-         }
-
-         buffer_[i] = data;
-      }
-   }
-
-   signed decodeSample(uint16_t sample_)
-   {
-      int16_t  mantissa = ((sample_ >> 3) & 0x3FF) << 4;
-      unsigned exp      = (sample_ >> 13) ^ 0b111;
-
-      return mantissa >> exp;
-   }
-
 private:
-   static uint8_t swapBits(uint8_t value_)
+   static uint8_t revBits(uint8_t value_)
    {
       value_ = ((value_ & 0xF0) >> 4) | ((value_ & 0x0F) << 4);
       value_ = ((value_ & 0xCC) >> 2) | ((value_ & 0x33) << 2);
       value_ = ((value_ & 0xAA) >> 1) | ((value_ & 0x55) << 1);
 
       return value_;
-   }
-
-   //! Initialize bus signals and YM2151 registers
-   void init()
-   {
-      data8.setHiZ();
-
-      a0  = A0_ADDR;
-      _cs = _rd = _wr = true;
-      wait_ns(T_AH);
-
-      _ic = false;
-      usleep(T_INIT);
-      _ic = true;
-
-      memset(shadow, 0, sizeof(shadow));
    }
 
    //! Wait for at least the given nano-seconds
@@ -294,8 +255,8 @@ private:
       _cs = _wr = false;
       wait_ns(T_CW - T_DS);
 
-      if (SWAP_DATA_BITS)
-         data8 = swapBits(value_);
+      if (REV_DATA)
+         data8 = revBits(value_);
       else
          data8 = value_;
 
@@ -319,8 +280,8 @@ private:
       wait_ns(T_ACC);
 
       uint8_t value;
-      if (SWAP_DATA_BITS)
-         value = swapBits(data8);
+      if (REV_DATA)
+         value = revBits(data8);
       else
          value = data8;
 
@@ -340,25 +301,24 @@ private:
    static constexpr unsigned T_ACC  = 180;   //!< Read data access (ns)
    static constexpr unsigned T_INIT = 25000; //!< Chip initialisation (ns)
 
-   static constexpr unsigned CLOCK = 3759545; // 3.579 MHz
-
    static constexpr bool A0_ADDR = false;
    static constexpr bool A0_DATA = true;
 
+   //!< Bi-directional data bus
    MTL::Gpio::InOut<8, PIN_DATA8> data8;
 
-   MTL::Gpio::Out<1, PIN_CTRL5+0> _ic;
-   MTL::Gpio::Out<1, PIN_CTRL5+1> a0;
-   MTL::Gpio::Out<1, PIN_CTRL5+2> _wr;
-   MTL::Gpio::Out<1, PIN_CTRL5+3> _rd;
-   MTL::Gpio::Out<1, PIN_CTRL5+4> _cs;
-
-   MTL::Gpio::In<1, PIN_AUDIO4+0> sam2;
-   MTL::Gpio::In<1, PIN_AUDIO4+1> sam1;
-   MTL::Gpio::In<1, PIN_AUDIO4+2> sd;
-   MTL::Gpio::In<1, PIN_AUDIO4+3> clk;
+   //!< Control signals
+   MTL::Gpio::Out<1, PIN_CTRL5+0> _ic; //!< Initial clear
+   MTL::Gpio::Out<1, PIN_CTRL5+1> a0;  //!< 0=>address, 1=>data
+   MTL::Gpio::Out<1, PIN_CTRL5+2> _wr; //!< Write
+   MTL::Gpio::Out<1, PIN_CTRL5+3> _rd; //!< Read
+   MTL::Gpio::Out<1, PIN_CTRL5+4> _cs; //!< Chip select
 
    uint8_t shadow[256];
+
+   MTL::PioClock clock{};
+   PIO_TYPE      pio{};
+   int           sd{-1};
 };
 
 } // namespace YM2151
