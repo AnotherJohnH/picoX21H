@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include "hw/Audio.h"
 #include "hw/Led.h"
 #include "hw/MidiUsbDevice.h"
 #include "hw/MidiIn.h"

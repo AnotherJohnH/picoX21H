@@ -36,42 +36,29 @@
 
 #endif
 
+#include "DX21/DX21Synth.h"
 #include "hw/hw.h"
 
 // ------------------------------------------------------------------------------------
 
 static const unsigned YM2151_CLOCK_HZ = 3579545;
+static const bool     MIDI_DEBUG      = true;
 
-static YM2151::Interface<MTL::Pio0,
-                         /* CTRL5    */ MTL::PIN_5,
-                         /* DATA8    */ MTL::PIN_11,
-                         /* REV_DATA */ true> ym2151{};
+static DX21::Synth synth{YM2151_CLOCK_HZ};
+static hw::Led     led{};
 
-static hw::Led led{};
+//static hw::MidiIn  midi_in{synth, MIDI_DEBUG};
 
 
-void playNote(unsigned ch_)
-{
-   // Config operator C2
-   ym2151.setOp<YM2151::MUL>(ch_, YM2151::OP_C2, 0x01);
-   ym2151.setOp<YM2151::AR>( ch_, YM2151::OP_C2, 0x3F);
-   ym2151.setOp<YM2151::D1R>(ch_, YM2151::OP_C2, 0);
-   ym2151.setOp<YM2151::D1L>(ch_, YM2151::OP_C2, 0);
-   ym2151.setOp<YM2151::D2R>(ch_, YM2151::OP_C2, 0);
-   ym2151.setOp<YM2151::RR>( ch_, YM2151::OP_C2, 0x3F);
-   ym2151.setOp<YM2151::TL>( ch_, YM2151::OP_C2, 0x00);
+// --- USB MIDI ----------------------------------------------------------------
 
-   // Config channel
-   ym2151.setCh<YM2151::CONECT>(ch_, 0);
-   ym2151.setCh<YM2151::FB>(    ch_, 0);
-   ym2151.setCh<YM2151::RL>(    ch_, 0b11);
-   ym2151.setCh<YM2151::KC>(    ch_, 0x4A);
-   ym2151.setCh<YM2151::KF>(    ch_, 0);
-   ym2151.setCh<YM2151::AMS>(   ch_, 0);
-   ym2151.setCh<YM2151::PMS>(   ch_, 0);
+#if defined(HW_MIDI_USB_DEVICE)
 
-   ym2151.noteOn(ch_, YM2151::OP_C2);
-}
+static hw::MidiUSBDevice midi_usb{synth, 0x91C0, "picoX21H", MIDI_DEBUG};
+
+extern "C" void IRQ_USBCTRL() { midi_usb.usb.irq(); }
+
+#endif
 
 
 extern void startAudio(unsigned);
@@ -92,18 +79,15 @@ int main()
    printf("Compiler : %s\n", __VERSION__);
    printf("\n");
 
-   ym2151.download(YM2151_CLOCK_HZ, /* CLK */ MTL::PIN_4);
-   ym2151.start();
-
    startAudio(YM2151_CLOCK_HZ);
-
-   playNote(0);
 
    while(true)
    {
-      led = not led;
+#if defined(HW_MIDI_USB_DEVICE)
+      midi_usb.tick();
+#endif
 
-      usleep(500000);
+      led = synth.isAnyVoiceOn();
    }
 
    return 0;
