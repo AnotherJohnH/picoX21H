@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright (c) 2023 John D. Haughton
+// Copyright (c) 2025 John D. Haughton
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,16 +22,22 @@
 
 #pragma once
 
+#include <cstdio>
+
 #include "STB/MIDIInstrument.h"
 
 #include "YM2151.h"
+#include "SysEx.h"
+#include "Table_dx21_rom.h"
 
 namespace DX21 {
 
 class Synth : public MIDI::Instrument</* N */ 8>
 {
 public:
-   Synth(unsigned ym2151_clock_hz_)
+   Synth() = default;
+
+   void start(unsigned ym2151_clock_hz_)
    {
       ym2151.download(ym2151_clock_hz_, /* CLK */ MTL::PIN_4);
       ym2151.start();
@@ -46,19 +52,36 @@ private:
    // MIDI::Instrument implementation
    void voiceProgram(unsigned index_, uint8_t number_) override
    {
-      // Config operator C2
-      ym2151.setOp<YM2151::MUL>(index_, YM2151::OP_C2, 0x01);
-      ym2151.setOp<YM2151::AR>( index_, YM2151::OP_C2, 0x3F);
-      ym2151.setOp<YM2151::D1R>(index_, YM2151::OP_C2, 0);
-      ym2151.setOp<YM2151::D1L>(index_, YM2151::OP_C2, 0);
-      ym2151.setOp<YM2151::D2R>(index_, YM2151::OP_C2, 0);
-      ym2151.setOp<YM2151::RR>( index_, YM2151::OP_C2, 0x3F);
-      ym2151.setOp<YM2151::TL>( index_, YM2151::OP_C2, 0x00);
+      SysEx::Voice voice{table_dx21_rom, number_};
+
+      if (index_ == 0)
+         voice.print(number_);
+
+      for(unsigned i = 0; i < SysEx::NUM_OP; ++i)
+      {
+         uint8_t op;
+         switch(i)
+         {
+         case 0: op = YM2151::OP_M1; break;
+         case 1: op = YM2151::OP_C1; break;
+         case 2: op = YM2151::OP_M2; break;
+         case 3: op = YM2151::OP_C2; break;
+         }
+
+         ym2151.setOp<YM2151::AR>( index_, op, voice.op[i].eg.ar);
+         ym2151.setOp<YM2151::D1R>(index_, op, voice.op[i].eg.d1r);
+         ym2151.setOp<YM2151::D1L>(index_, op, voice.op[i].eg.d1l);
+         ym2151.setOp<YM2151::D2R>(index_, op, voice.op[i].eg.d2r);
+         ym2151.setOp<YM2151::RR>( index_, op, voice.op[i].eg.rr);
+         ym2151.setOp<YM2151::MUL>(index_, op, voice.op[i].freq);
+         ym2151.setOp<YM2151::TL>( index_, op, (99 - voice.op[i].out_level) * 128 / 99);
+      }
 
       // Config channel
-      ym2151.setCh<YM2151::CONECT>(index_, 0);
-      ym2151.setCh<YM2151::FB>(    index_, 0);
+      ym2151.setCh<YM2151::CONECT>(index_, voice.alg);
+      ym2151.setCh<YM2151::FB>(    index_, voice.fb);
       ym2151.setCh<YM2151::RL>(    index_, 0b11);
+
       ym2151.setCh<YM2151::KF>(    index_, 0);
       ym2151.setCh<YM2151::AMS>(   index_, 0);
       ym2151.setCh<YM2151::PMS>(   index_, 0);
@@ -77,7 +100,7 @@ private:
 
       ym2151.setCh<YM2151::KC>(index_, (octave << 4) | note);
 
-      ym2151.noteOn(index_, YM2151::OP_C2);
+      ym2151.noteOn(index_);
    }
 
    void voiceOff(unsigned index_, uint8_t velocity_) override
@@ -91,6 +114,13 @@ private:
 
    void voiceControl(unsigned index_, uint8_t control_, uint8_t value_) override
    {
+      if (control_ == 119)
+      {
+         // Hack to allow program selection via CC119 for DAWs that
+         // charge extra for easy MIDI program selection
+         this->voiceProgram(index_, value_);
+         return;
+      }
    }
 
    void voicePitchBend(unsigned index_, int16_t value_) override

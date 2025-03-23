@@ -44,7 +44,7 @@
 static const unsigned YM2151_CLOCK_HZ = 3579545;
 static const bool     MIDI_DEBUG      = true;
 
-static DX21::Synth synth{YM2151_CLOCK_HZ};
+static DX21::Synth synth{};
 static hw::Led     led{};
 
 //static hw::MidiIn  midi_in{synth, MIDI_DEBUG};
@@ -79,6 +79,7 @@ int main()
    printf("Compiler : %s\n", __VERSION__);
    printf("\n");
 
+   synth.start(YM2151_CLOCK_HZ);
    startAudio(YM2151_CLOCK_HZ);
 
    while(true)

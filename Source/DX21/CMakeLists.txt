@@ -20,19 +20,28 @@
 #  SOFTWARE.
 #-------------------------------------------------------------------------------
 
-cmake_minimum_required(VERSION 3.20)
+add_custom_command(
+   COMMENT
+      "Auto-generate for DX21"
+   COMMAND
+      ${CMAKE_COMMAND}
+         -E env PYTHONPATH=${python_path}
+         ${CMAKE_CURRENT_SOURCE_DIR}/AUTO.py
+             ${CMAKE_CURRENT_SOURCE_DIR}/rom/dx21_rom_v15.bin
+   DEPENDS
+      ${CMAKE_CURRENT_SOURCE_DIR}/AUTO.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/rom/dx21_rom_v15.bin
+   OUTPUT
+      ${CMAKE_CURRENT_BINARY_DIR}/Table_dx21_rom.h
+      ${CMAKE_CURRENT_BINARY_DIR}/Table_dx21_rom.cpp
+   )
 
-project(picoX21H
-        LANGUAGES CXX ASM
-        VERSION 0.01)
+add_library(DX21 STATIC
+   Table_dx21_rom.cpp
+   SysEx.cpp
+   )
 
-include(CTest)
-
-add_subdirectory(Platform)
-add_subdirectory(Source)
-
-if(${PLT_TARGET} STREQUAL rpipico OR ${PLT_TARGET} STREQUAL rpipico2)
-   math(EXPR plt_bcd_version "${CMAKE_MAJOR_VERSION} * 0x100 + ${CMAKE_MINOR_VERSION}"
-        OUTPUT_FORMAT HEXADECIMAL)
-   target_compile_definitions(MTL PUBLIC PLT_BCD_VERSION=${plt_bcd_version})
-endif()
+target_include_directories(DX21
+   PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..
+   )

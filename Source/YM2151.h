@@ -30,6 +30,8 @@
 #include "MTL/Gpio.h"
 #include "MTL/chip/PioClock.h"
 
+#define DBG if (0) printf
+
 namespace YM2151 {
 
 enum Param
@@ -213,7 +215,7 @@ public:
 
       shadow[addr_] = data_;
 
-      printf("WR %02X => %02X [%u]\n", data_, addr_, count);
+      DBG("WR %02X => %02X [%u]\n", data_, addr_, count);
    }
 
    uint8_t readStatus()

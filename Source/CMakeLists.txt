@@ -20,19 +20,18 @@
 #  SOFTWARE.
 #-------------------------------------------------------------------------------
 
-cmake_minimum_required(VERSION 3.20)
+set(python_path ${CMAKE_CURRENT_SOURCE_DIR}/../Platform/python)
 
-project(picoX21H
-        LANGUAGES CXX ASM
-        VERSION 0.01)
+add_subdirectory(DX21)
+add_subdirectory(hw)
 
-include(CTest)
+foreach(hw_config ${hw_config_list})
 
-add_subdirectory(Platform)
-add_subdirectory(Source)
+   add_executable(picoX21H_${hw_config}
+                  picoX21H.cpp
+                  audio.cpp)
 
-if(${PLT_TARGET} STREQUAL rpipico OR ${PLT_TARGET} STREQUAL rpipico2)
-   math(EXPR plt_bcd_version "${CMAKE_MAJOR_VERSION} * 0x100 + ${CMAKE_MINOR_VERSION}"
-        OUTPUT_FORMAT HEXADECIMAL)
-   target_compile_definitions(MTL PUBLIC PLT_BCD_VERSION=${plt_bcd_version})
-endif()
+   target_compile_definitions(picoX21H_${hw_config} PRIVATE HW_${hw_config})
+   target_link_libraries(     picoX21H_${hw_config} PRIVATE DX21 HW)
+
+endforeach()
