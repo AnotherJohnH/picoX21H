@@ -27,10 +27,10 @@ add_custom_command(
       ${CMAKE_COMMAND}
          -E env PYTHONPATH=${python_path}
          ${CMAKE_CURRENT_SOURCE_DIR}/AUTO.py
-             ${CMAKE_CURRENT_SOURCE_DIR}/rom/dx21_rom_v15.bin
+             ${CMAKE_CURRENT_SOURCE_DIR}/rom/dx21_rom_v1_5.bin
    DEPENDS
       ${CMAKE_CURRENT_SOURCE_DIR}/AUTO.py
-      ${CMAKE_CURRENT_SOURCE_DIR}/rom/dx21_rom_v15.bin
+      ${CMAKE_CURRENT_SOURCE_DIR}/rom/dx21_rom_v1_5.bin
    OUTPUT
       ${CMAKE_CURRENT_BINARY_DIR}/Table_dx21_rom.h
       ${CMAKE_CURRENT_BINARY_DIR}/Table_dx21_rom.cpp
