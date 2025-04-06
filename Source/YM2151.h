@@ -62,8 +62,22 @@ class Interface
 public:
    Interface() = default;
 
-   //! Initialize bus signals and YM2151 registers
-   void reset()
+   signed download(unsigned clock_freq_,
+                   unsigned pin_clock_)
+   {
+      sd = clock.download(pio, clock_freq_, pin_clock_);
+      return sd;
+   }
+
+   void start()
+   {
+      pio.start(1 << sd);
+
+      hardReset();
+   }
+
+   //! Initialize bus signals and YM2151 registers uses IC pin
+   void hardReset()
    {
       data8.setHiZ();
 
@@ -78,18 +92,28 @@ public:
       memset(shadow, 0, sizeof(shadow));
    }
 
-   signed download(unsigned clock_freq_,
-                   unsigned pin_clock_)
+   //! Initialize registers to stop all sounds and timer activity
+   void softReset()
    {
-      sd = clock.download(pio, clock_freq_, pin_clock_);
-      return sd;
-   }
+      set<NE>(0);     // Disable noise
 
-   void start()
-   {
-      pio.start(1 << sd);
+      set<LOAD>(0);   // Stop timers
+      set<IRQ_EN>(0); // Disable interrupts
+      set<CSM>(0);    // Clear CSM
 
-      reset();
+      for(unsigned ch = 0; ch < 8; ch++)
+      {
+         for(unsigned op = 0; op < 4; ch++)
+         {
+            set<D1L>(ch, op, 0xF);
+            set<RR>( ch, op, 0x8);
+         }
+      }
+
+      for(unsigned ch = 0; ch < 8; ch++)
+      {
+         noteOff(ch);
+      }
    }
 
    void noteOn(unsigned channel_, uint8_t op_mask_ = OP_ALL)
