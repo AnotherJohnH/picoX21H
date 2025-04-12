@@ -31,8 +31,6 @@
 #include "MTL/Gpio.h"
 
 #include "YM2151.h"
-#include "PioYMDAC.h"
-#include "PioI2S_S16.h"
 
 #endif
 

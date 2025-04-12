@@ -28,8 +28,8 @@
 #include "MTL/MTL.h"
 #include "MTL/Pins.h"
 
-#include "PioYMDAC.h"
-#include "PioI2S_S16.h"
+#include "MTL/chip/PioYMDAC.h"
+#include "MTL/chip/PioI2S_S16.h"
 
 static MTL::PioYMDAC<MTL::Pio1>   ymdac_in{};
 static MTL::PioI2S_S16<MTL::Pio0> i2s_out{};
