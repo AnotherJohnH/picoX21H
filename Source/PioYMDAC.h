@@ -124,7 +124,7 @@ public:
    {
       uint32_t data = pio.SM_pop(sd);
 
-      // Raw data is already partially processed by the PIO as
+      // Raw data is already partially processed by the PIO
       // into packed "floating-point" sample pair with the
       // following format...
       //
