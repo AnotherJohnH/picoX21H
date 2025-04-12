@@ -1,5 +1,5 @@
 ;
-; Yamaha DX21 ROM v1.5
+; Yamaha DX21 ROM V1.5  9th Aug 1985
 ;
 ; Note: This file is a reverse-engineered assembler representation of ROM images
 ; that are the intellectual property of Yamaha. These files are provided for personal,
@@ -34,6 +34,33 @@ CPU_RAM_SIZE:  EQU  $C0
 RAM_BASE:      EQU  $1000
 RAM_SIZE:      EQU  $1800
 
+;-------------------------------------------------------------------------------
+; Constants
+
+PATCH_SIZE:    EQU  $49
+
+;-------------------------------------------------------------------------------
+; CPU memory variables
+
+TMP_PTR1:      EQU  $40
+TMP_PTR2:      EQU  $42
+
+SRC_PTR:       EQU  $4B
+DST_PTR:       EQU  $4D
+
+;-------------------------------------------------------------------------------
+; Main memory variables
+
+MEMORY_PATCHES: EQU  $1000
+
+PATCH_BUFFER:   EQU  $1920
+
+LCD_SHADOW:     EQU  $2714   ; char[32] representing current LCD display
+LCD_BUFFER:     EQU  $2734   ; char[32] buffer for sending to the LCD
+
+
+;-------------------------------------------------------------------------------
+
 ROM_BASE:      EQU  $8000
 ROM_SIZE:      EQU  $8000
 
@@ -44,7 +71,7 @@ ROM_SIZE:      EQU  $8000
 ;===============================================================================
 ; Preset voice data
 
-dat_8000:
+preset_patches:
     BYTE  $18, $01, $01, $03, $00, $15, $00, $41  ; .......A
     BYTE  $04, $0D, $16, $01, $01, $04, $0C, $4B  ; .......K
     BYTE  $00, $52, $00, $13, $18, $05, $01, $03  ; .R......
@@ -1231,9 +1258,11 @@ lbl_A480:
     JSR   rtn_3                                   ; A49C
     JSR   rtn_7                                   ; A49F
     JSR   rtn_8                                   ; A4A2
-    JSR   rtn_9                                   ; A4A5
-    LDX   #$A66B                                  ; A4A8
-    JSR   rtn_10                                  ; A4AB
+
+    JSR   lcd_clr_buf                             ; A4A5
+    LDX   #msg_check_level                        ; A4A8
+    JSR   lcd_home_print                          ; A4AB
+
     BSR   rtn_11                                  ; A4AE
     LDAA  #$08                                    ; A4B0
     STAA  $08                                     ; A4B2
@@ -1281,28 +1310,28 @@ lbl_A4E4:
     BRA   lbl_A508                                ; A4FB
 
 lbl_A4FD:
-    LDX   #$A50B                                  ; A4FD
+    LDX   #str_Bhi                                ; A4FD
     BRA   lbl_A505                                ; A500
 
 lbl_A502:
-    LDX   #$A50F                                  ; A502
+    LDX   #str_Blo                                ; A502
 
 lbl_A505:
     JSR   rtn_30                                  ; A505
 
 lbl_A508:
-    JMP   rtn_21                                  ; A508
+    JMP   lcd_rtn_21                              ; A508
 
-dat_A50B:
-    BYTE  $42, $68, $69, $00, $42, $6C, $6F, $00  ; Bhi.Blo.
+str_Bhi: BYTE "Bhi",0
+str_Blo: BYTE "Blo",0
 
 lbl_A513:
-    JSR   rtn_9                                   ; A513
+    JSR   lcd_clr_buf                             ; A513
     SEI                                           ; A516
     CLR   $0008                                   ; A517
     JSR   rtn_15                                  ; A51A
     JSR   rtn_16                                  ; A51D
-    JSR   rtn_17                                  ; A520
+    JSR   cas_rtn_17                              ; A520
     CLI                                           ; A523
     JSR   rtn_2                                   ; A524
     JSR   rtn_18                                  ; A527
@@ -1366,12 +1395,12 @@ lbl_A570:
     BHI   rtn_20                                  ; A574
     INC   $0044                                   ; A576
     CLR   $0045                                   ; A579
-    JMP   rtn_9                                   ; A57C
+    JMP   lcd_clr_buf                             ; A57C
 
 lbl_A57F:
-    JSR   rtn_9                                   ; A57F
+    JSR   lcd_clr_buf                             ; A57F
     LDX   #$A5CD                                  ; A582
-    JSR   rtn_10                                  ; A585
+    JSR   lcd_home_print                          ; A585
 
 lbl_A588:
     JSR   rtn_13                                  ; A588
@@ -1394,9 +1423,9 @@ lbl_A5A0:
     JSR   rtn_39                                  ; A5A7
     CPX   #$1E89                                  ; A5AA
     BCS   lbl_A5A0                                ; A5AD
-    JSR   rtn_9                                   ; A5AF
+    JSR   lcd_clr_buf                             ; A5AF
     LDX   #$EB9F                                  ; A5B2
-    JSR   rtn_10                                  ; A5B5
+    JSR   lcd_home_print                          ; A5B5
 
 lbl_A5B8:
     BRA   lbl_A5B8                                ; A5B8
@@ -1424,61 +1453,65 @@ dat_A5CD:
 ; rtn_16 -
 
 rtn_16:
-    LDX   #$1000                                  ; A5EB
-    STX   $42                                     ; A5EE
+; Copy 0xD0-0xEF to 0x1000
+    LDX   #RAM_BASE                               ; A5EB
+    STX   TMP_PTR2                                ; A5EE
     LDX   #$00D0                                  ; A5F0
-    STX   $40                                     ; A5F3
+    STX   TMP_PTR1                                ; A5F3
 
-lbl_A5F5:
-    BSR   rtn_109                                 ; A5F5
+rtn_16_loop:
+    BSR   copy32_tmp                              ; A5F5
     BSR   rtn_110                                 ; A5F7
-    BSR   rtn_111                                 ; A5F9
-    LDX   $42                                     ; A5FB
+    BSR   copy32_inc_dst                          ; A5F9
+    LDX   TMP_PTR2                                ; A5FB
     CPX   #$27E0                                  ; A5FD
-    BCS   lbl_A5F5                                ; A600
+    BCS   rtn_16_loop                             ; A600
     RTS                                           ; A602
 
 ;===============================================================================
-; rtn_109 -
+; copy32_tmp(TMP_PTR2, TMP_PTR1) - Copy 32 bytes from TMP_PTR1 to TMP_PTR2
 
-rtn_109:
-    LDX   $42                                     ; A603
-    STX   $4B                                     ; A605
-    LDX   $40                                     ; A607
-    STX   $4D                                     ; A609
-    BSR   rtn_112                                 ; A60B
+copy32_tmp:
+    LDX   TMP_PTR2                                ; A603
+    STX   SRC_PTR                                 ; A605
+    LDX   TMP_PTR1                                ; A607
+    STX   DST_PTR                                 ; A609
+    BSR   copy32                                  ; A60B
     RTS                                           ; A60D
 
 ;===============================================================================
-; rtn_111 -
+; copy32_inc_dst(TMP_PTR1, TMP_PTR2) - Copy 32 bytes inc dest pointer
 
-rtn_111:
-    LDX   $40                                     ; A60E
-    STX   $4B                                     ; A610
-    LDX   $42                                     ; A612
-    STX   $4D                                     ; A614
-    BSR   rtn_112                                 ; A616
-    LDX   $42                                     ; A618
+copy32_inc_dst:
+    LDX   TMP_PTR1                                ; A60E
+    STX   SRC_PTR                                 ; A610
+    LDX   TMP_PTR2                                ; A612
+    STX   DST_PTR                                 ; A614
+    BSR   copy32                                  ; A616
+    LDX   TMP_PTR2                                ; A618
     ABX                                           ; A61A
-    STX   $42                                     ; A61B
+    STX   TMP_PTR2                                ; A61B
     RTS                                           ; A61D
 
 ;===============================================================================
-; rtn_112 -
+; copy32(SRC_PTR, DST_PTR) - Copy 32 bytes
 
-rtn_112:
+copy32:
     CLRB                                          ; A61E
-
-lbl_A61F:
-    LDX   $4B                                     ; A61F
+copy32_loop:
+    LDX   SRC_PTR                                 ; A61F
     ABX                                           ; A621
-    LDAA  $00,X                                   ; A622
-    LDX   $4D                                     ; A624
+    LDAA  0,X                                     ; A622
+
+    LDX   DST_PTR                                 ; A624
     ABX                                           ; A626
-    STAA  $00,X                                   ; A627
+    STAA  0,X                                     ; A627
+
     INCB                                          ; A629
-    CMPB  #$20                                    ; A62A
-    BNE   lbl_A61F                                ; A62C
+    CMPB  #32                                     ; A62A
+
+    BNE   copy32_loop                             ; A62C
+
     RTS                                           ; A62E
 
 ;===============================================================================
@@ -1526,22 +1559,20 @@ lbl_A658:
 lbl_A659:
     ADDA  #$34                                    ; A659
     PSHA                                          ; A65B
-    LDX   #$A687                                  ; A65C
-    JSR   rtn_10                                  ; A65F
+    LDX   #msg_ic_is_ng                           ; A65C
+    JSR   lcd_home_print                          ; A65F
     PULA                                          ; A662
     STAA  $2737                                   ; A663
-    JSR   rtn_21                                  ; A666
+    JSR   lcd_rtn_21                              ; A666
 
-lbl_A669:
-    BRA   lbl_A669                                ; A669
+hang_ic_is_ng:
+    BRA   hang_ic_is_ng                           ; A669
 
-dat_A66B:
-    BYTE  $56, $31, $2E, $35, $20, $20, $30, $39  ; V1.5  09
-    BYTE  $2D, $41, $75, $67, $2D, $38, $35, $20  ; -Aug-85
-    BYTE  $43, $68, $65, $63, $6B, $20, $4C, $65  ; Check Le
-    BYTE  $76, $65, $6C, $00, $20, $49, $43, $20  ; vel. IC
-    BYTE  $20, $69, $73, $20, $4E, $47, $20, $21  ;  is NG !
-    BYTE  $00                                     ; .
+msg_check_level:
+    BYTE  "V1.5  09-Aug-85 Check Level",0
+
+msg_ic_is_ng:
+    BYTE  " IC  is NG !", 0
 
 ;===============================================================================
 ; rtn_18 -
@@ -1560,8 +1591,9 @@ lbl_A695:
 
 lbl_A6A3:
     LDAB  #$01                                    ; A6A3
-    JSR   rtn_105                                 ; A6A5
-    LDX   #$A6D6                                  ; A6A8
+    JSR   delay                                   ; A6A5
+
+    LDX   #str_dx21                               ; A6A8
     STX   $42                                     ; A6AB
     LDX   #$253F                                  ; A6AD
     STX   $40                                     ; A6B0
@@ -1570,37 +1602,36 @@ lbl_A6B2:
     LDX   $42                                     ; A6B2
     ABX                                           ; A6B4
     LDAA  $00,X                                   ; A6B5
-    BEQ   lbl_A6C3                                ; A6B7
+    BEQ   rtn18_exit                              ; A6B7
     LDX   $40                                     ; A6B9
     ABX                                           ; A6BB
     CMPA  $00,X                                   ; A6BC
-    BNE   lbl_A6C4                                ; A6BE
+    BNE   midi_error                              ; A6BE
     INCB                                          ; A6C0
     BRA   lbl_A6B2                                ; A6C1
 
-lbl_A6C3:
+rtn18_exit:
     RTS                                           ; A6C3
 
-lbl_A6C4:
-    LDX   #$A6CC                                  ; A6C4
-    JSR   rtn_10                                  ; A6C7
+midi_error:
+    LDX   #msg_err_midi                           ; A6C4
+    JSR   lcd_home_print                          ; A6C7
 
-lbl_A6CA:
-    BRA   lbl_A6CA                                ; A6CA
+hang_midi_error:
+    BRA   hang_midi_error                         ; A6CA
 
-dat_A6CC:
-    BYTE  $45, $52, $52, $20, $4D, $49, $44, $49  ; ERR MIDI
-    BYTE  $21, $00, $44, $58, $32, $31, $00       ; !.DX21.
+msg_err_midi: BYTE "ERR MIDI!", 0
+str_dx21:     BYTE "DX21", 0
 
 ;===============================================================================
-; rtn_17 -
+; cas_rtn_17 -
 
-rtn_17:
+cas_rtn_17:
     CLRB                                          ; A6DB
 
 lbl_A6DC:
     EIMD  #$2,$3                                  ; A6DC
-    BSR   rtn_107                                 ; A6DF
+    BSR   delay159                                ; A6DF
     LDAA  $03                                     ; A6E1
     ANDA  #$01                                    ; A6E3
     STAA  $F5                                     ; A6E5
@@ -1621,23 +1652,23 @@ lbl_A6EC:
     RTS                                           ; A6FE
 
 lbl_A6FF:
-    LDX   #$A731                                  ; A6FF
-    JSR   rtn_10                                  ; A702
+    LDX   #msg_err_cas                            ; A6FF
+    JSR   lcd_home_print                          ; A702
 
-lbl_A705:
-    BRA   lbl_A705                                ; A705
+hang_err_cas:
+    BRA   hang_err_cas                            ; A705
 
 ;===============================================================================
-; rtn_107 -
+; delay159() -
 
-rtn_107:
+delay159:
     LDX   #$009F                                  ; A707
     NOP                                           ; A70A
     NOP                                           ; A70B
 
-lbl_A70C:
+delay159_loop:
     DEX                                           ; A70C
-    BNE   lbl_A70C                                ; A70D
+    BNE   delay159_loop                           ; A70D
     RTS                                           ; A70F
 
 ;===============================================================================
@@ -1672,9 +1703,8 @@ lbl_A72A:
     NOP                                           ; A72F
     RTS                                           ; A730
 
-dat_A731:
-    BYTE  $45, $52, $52, $20, $43, $41, $53, $2E  ; ERR CAS.
-    BYTE  $21, $00                                ; !.
+msg_err_cas:
+    BYTE  "ERR CAS.!", 0
 
 ;===============================================================================
 ; rtn_19 -
@@ -1687,13 +1717,13 @@ rtn_19:
     CLRB                                          ; A744
 
 lbl_A745:
-    LDX   #$2734                                  ; A745
+    LDX   #LCD_BUFFER                             ; A745
     ABX                                           ; A748
     STAA  $00,X                                   ; A749
     INCB                                          ; A74B
     CMPB  #$20                                    ; A74C
     BNE   lbl_A745                                ; A74E
-    JSR   rtn_21                                  ; A750
+    JSR   lcd_rtn_21                              ; A750
     BRA   lbl_A75D                                ; A753
 
 lbl_A755:
@@ -1706,16 +1736,16 @@ lbl_A75D:
     LDAB  #$0A                                    ; A75D
 
 ;===============================================================================
-; rtn_105 -
+; delay(B) -
 
-rtn_105:
+delay:
     LDX   #$2328                                  ; A75F
 
-lbl_A762:
+delay_loop:
     DEX                                           ; A762
-    BNE   lbl_A762                                ; A763
+    BNE   delay_loop                              ; A763
     DECB                                          ; A765
-    BNE   rtn_105                                 ; A766
+    BNE   delay                                   ; A766
     RTS                                           ; A768
 
 ;===============================================================================
@@ -1745,7 +1775,7 @@ rtn_26:
     ASLB                                          ; A781
     ABX                                           ; A782
     LDX   $00,X                                   ; A783
-    JSR   rtn_10                                  ; A785
+    JSR   lcd_home_print                          ; A785
     LDAB  $45                                     ; A788
     LDX   #$A80D                                  ; A78A
     ASLB                                          ; A78D
@@ -1768,7 +1798,7 @@ rtn_26:
     LDX   #$2741                                  ; A7A8
     STX   $40                                     ; A7AB
     JSR   rtn_28                                  ; A7AD
-    JSR   rtn_21                                  ; A7B0
+    JSR   lcd_rtn_21                              ; A7B0
     PULX                                          ; A7B3
     LDAA  $00,X                                   ; A7B4
     PULX                                          ; A7B6
@@ -1788,7 +1818,7 @@ lbl_A7C0:
 
 lbl_A7C6:
     INC   $0045                                   ; A7C6
-    JSR   rtn_9                                   ; A7C9
+    JSR   lcd_clr_buf                             ; A7C9
     BRA   lbl_A76F                                ; A7CC
 
 lbl_A7CE:
@@ -1804,7 +1834,7 @@ lbl_A7DA:
     BEQ   lbl_A777                                ; A7DD
     INC   $0044                                   ; A7DF
     CLR   $0045                                   ; A7E2
-    JMP   rtn_9                                   ; A7E5
+    JMP   lcd_clr_buf                             ; A7E5
 
 dat_A7E8:
     BYTE  $A7, $F6, $A7, $F9, $A7, $FC, $A7, $FF  ; ........
@@ -1830,8 +1860,8 @@ rtn_87:
     STAA  $EA                                     ; A82E
     STAA  $89                                     ; A830
     STAA  $8A                                     ; A832
-    LDX   #$A876                                  ; A834
-    JSR   rtn_10                                  ; A837
+    LDX   #msg_push_kbd                           ; A834
+    JSR   lcd_home_print                          ; A837
 
 lbl_A83A:
     CLR   $0050                                   ; A83A
@@ -1863,9 +1893,7 @@ lbl_A83D:
     CLR   $0045                                   ; A872
     RTS                                           ; A875
 
-dat_A876:
-    BYTE  $50, $75, $73, $68, $20, $4B, $42, $44  ; Push KBD
-    BYTE  $20, $00                                ;  .
+msg_push_kbd: BYTE "Push KBD ",0
 
 ;===============================================================================
 ; rtn_103 -
@@ -1873,8 +1901,8 @@ dat_A876:
 rtn_103:
     TST   $0045                                   ; A880
     BNE   lbl_A88E                                ; A883
-    LDX   #$A8D6                                  ; A885
-    JSR   rtn_10                                  ; A888
+    LDX   #msg_push_switch                        ; A885
+    JSR   lcd_home_print                          ; A888
 
 lbl_A88B:
     CLR   $0050                                   ; A88B
@@ -1886,7 +1914,7 @@ lbl_A88E:
     LDX   #$2740                                  ; A892
     STX   $40                                     ; A895
     JSR   rtn_28                                  ; A897
-    JSR   rtn_21                                  ; A89A
+    JSR   lcd_rtn_21                              ; A89A
     JSR   rtn_13                                  ; A89D
     JSR   rtn_104                                 ; A8A0
     TST   $0068                                   ; A8A3
@@ -1920,10 +1948,7 @@ lbl_A8D2:
     SUBA  #$04                                    ; A8D2
     BRA   lbl_A8BD                                ; A8D4
 
-dat_A8D6:
-    BYTE  $50, $75, $73, $68, $20, $53, $77, $69  ; Push Swi
-    BYTE  $74, $63, $68, $20, $00                 ; tch .
-
+msg_push_switch: BYTE "Push Switch ",0
 
 ;===============================================================================
 ; handler_RST - Reset vector entry point
@@ -2158,9 +2183,9 @@ lbl_AA5F:
     CLI                                           ; AA68
     LDAA  #$08                                    ; AA69
     STAA  $08                                     ; AA6B
-    BRA   lbl_AA6F                                ; AA6D
+    BRA   main_loop                               ; AA6D
 
-lbl_AA6F:
+main_loop:
     JSR   rtn_13                                  ; AA6F
     JSR   rtn_12                                  ; AA72
     JSR   rtn_14                                  ; AA75
@@ -2171,11 +2196,12 @@ lbl_AA6F:
     JSR   rtn_6                                   ; AA84
     JSR   rtn_117                                 ; AA87
     JSR   rtn_118                                 ; AA8A
+
     TST   $00A8                                   ; AA8D
-    BEQ   lbl_AA6F                                ; AA90
+    BEQ   main_loop                               ; AA90
     JSR   rtn_119                                 ; AA92
     CLR   $00A8                                   ; AA95
-    BRA   lbl_AA6F                                ; AA98
+    BRA   main_loop                               ; AA98
 
 ;===============================================================================
 ; rtn_116 -
@@ -2194,7 +2220,7 @@ rtn_116:
     BRA   lbl_AAB7                                ; AAB2
 
 lbl_AAB4:
-    LDAA  $2714                                   ; AAB4
+    LDAA  LCD_SHADOW                              ; AAB4
 
 lbl_AAB7:
     JSR   lcd_chr                                 ; AAB7
@@ -2856,7 +2882,7 @@ lbl_AE4E:
     INCB                                          ; AE5A
     CLRA                                          ; AE5B
     JSR   rtn_28                                  ; AE5C
-    JSR   rtn_21                                  ; AE5F
+    JSR   lcd_rtn_21                              ; AE5F
     JMP   lbl_B6EE                                ; AE62
 
 lbl_AE65:
@@ -3000,11 +3026,11 @@ lbl_AF0E:
     STD   $42                                     ; AF36
     LDD   #$0039                                  ; AF38
     ADDD  $42                                     ; AF3B
-    ADDD  #$8000                                  ; AF3D
+    ADDD  #preset_patches                         ; AF3D
     STD   $42                                     ; AF40
     LDAB  #$0A                                    ; AF42
     JSR   rtn_39                                  ; AF44
-    JMP   rtn_21                                  ; AF47
+    JMP   lcd_rtn_21                              ; AF47
 
 lbl_AF4A:
     CMPB  #$20                                    ; AF4A
@@ -3023,7 +3049,7 @@ lbl_AF56:
     STX   $40                                     ; AF5C
     LDAA  $EE                                     ; AF5E
     JSR   rtn_43                                  ; AF60
-    JMP   rtn_21                                  ; AF63
+    JMP   lcd_rtn_21                              ; AF63
 
 lbl_AF66:
     LDAB  $67                                     ; AF66
@@ -3670,8 +3696,8 @@ lbl_B334:
 rtn_127:
     TST   $275D                                   ; B338
     BEQ   lbl_B346                                ; B33B
-    JSR   rtn_9                                   ; B33D
-    JSR   rtn_21                                  ; B340
+    JSR   lcd_clr_buf                             ; B33D
+    JSR   lcd_rtn_21                              ; B340
     JSR   rtn_128                                 ; B343
 
 lbl_B346:
@@ -4484,10 +4510,10 @@ rtn_171:
 ; rtn_172 -
 
 rtn_172:
-    LDAB  #$49                                    ; B862
+    LDAB  #PATCH_SIZE                             ; B862
     MUL                                           ; B864
-    ADDD  #$1000                                  ; B865
-    STD   $42                                     ; B868
+    ADDD  #MEMORY_PATCHES                         ; B865
+    STD   TMP_PTR2                                ; B868
     RTS                                           ; B86A
 
 lbl_B86B:
@@ -4532,10 +4558,10 @@ rtn_135:
     LDD   $00,X                                   ; B8A7
     STD   $1C87                                   ; B8A9
     LDAA  $1C80                                   ; B8AC
-    LDAB  #$49                                    ; B8AF
+    LDAB  #PATCH_SIZE                             ; B8AF
     MUL                                           ; B8B1
     ADDD  $1C87                                   ; B8B2
-    ADDD  #$8000                                  ; B8B5
+    ADDD  #preset_patches                         ; B8B5
     JSR   rtn_136                                 ; B8B8
     LDAA  #$0F                                    ; B8BB
     STAA  $1C69                                   ; B8BD
@@ -4591,12 +4617,10 @@ dat_B90E:
     BYTE  $1B, $60, $1D, $A8, $1F, $F0, $22, $38  ; .`...."8
 
 lbl_B92E:
-    LDX   #$B934                                  ; B92E
+    LDX   #msg_completed                          ; B92E
     JMP   lbl_F815                                ; B931
 
-dat_B934:
-    BYTE  $20, $43, $4F, $4D, $50, $4C, $45, $54  ;  COMPLET
-    BYTE  $45, $44, $20, $21, $00                 ; ED !.
+msg_completed: BYTE  " COMPLETED !",0
 
 ;===============================================================================
 ; rtn_84 -
@@ -4790,9 +4814,9 @@ dat_BA5E:
 ; rtn_174 -
 
 rtn_174:
-    LDAB  #$49                                    ; BA85
+    LDAB  #PATCH_SIZE                             ; BA85
     MUL                                           ; BA87
-    ADDD  #$1000                                  ; BA88
+    ADDD  #MEMORY_PATCHES                         ; BA88
     STD   $40                                     ; BA8B
     LDX   #$1920                                  ; BA8D
     STX   $42                                     ; BA90
@@ -4934,9 +4958,9 @@ lbl_BAEC:
 ; rtn_137 -
 
 rtn_137:
-    LDAB  #$49                                    ; BB69
+    LDAB  #PATCH_SIZE                             ; BB69
     MUL                                           ; BB6B
-    ADDD  #$1000                                  ; BB6C
+    ADDD  #MEMORY_PATCHES                         ; BB6C
 
 ;===============================================================================
 ; rtn_136 -
@@ -5157,13 +5181,13 @@ rtn_39:
 ; rtn_7 -
 
 rtn_7:
-    LDX   #$BCB6                                  ; BCAA
-    STX   $42                                     ; BCAD
-    LDX   #$1920                                  ; BCAF
-    STX   $40                                     ; BCB2
+    LDX   #init_voice                             ; BCAA
+    STX   TMP_PTR2                                ; BCAD
+    LDX   #PATCH_BUFFER                           ; BCAF
+    STX   TMP_PTR1                                ; BCB2
     BRA   lbl_BC87                                ; BCB4
 
-dat_BCB6:
+init_voice:
     BYTE  $1F, $1F, $00, $0F, $0F, $00, $00, $00  ; ........
     BYTE  $00, $00, $00, $04, $03, $1F, $1F, $00  ; ........
     BYTE  $0F, $0F, $00, $00, $00, $00, $00, $00  ; ........
@@ -11183,19 +11207,22 @@ lbl_E690:
     LDAA  $08                                     ; E6A0
     PSHA                                          ; E6A2
     CLR   $0008                                   ; E6A3
-    LDX   #$2734                                  ; E6A6
-    STX   $40                                     ; E6A9
+
+; tmp_ptr1 = LCD_BUFFER
+    LDX   #LCD_BUFFER                             ; E6A6
+    STX   TMP_PTR1                                ; E6A9
+
     LDX   #$E6E6                                  ; E6AB
     JSR   rtn_30                                  ; E6AE
-    LDX   #$196D                                  ; E6B1
 
+    LDX   #$196D                                  ; E6B1
 lbl_E6B4:
-    LDAB  $00,X                                   ; E6B4
-    JSR   rtn_31                                  ; E6B6
+    LDAB  0,X                                     ; E6B4
+    JSR   lcd_putc                                ; E6B6
     INX                                           ; E6B9
     CPX   #$1977                                  ; E6BA
     BNE   lbl_E6B4                                ; E6BD
-    JSR   rtn_21                                  ; E6BF
+    JSR   lcd_rtn_21                              ; E6BF
     JSR   rtn_3                                   ; E6C2
     JSR   rtn_4                                   ; E6C5
     JSR   rtn_5                                   ; E6C8
@@ -11206,12 +11233,12 @@ lbl_E6B4:
 
 lbl_E6D3:
     LDX   #$E6ED                                  ; E6D3
-    JSR   rtn_10                                  ; E6D6
+    JSR   lcd_home_print                          ; E6D6
     BRA   lbl_E6E1                                ; E6D9
 
 lbl_E6DB:
     LDX   #$E6FE                                  ; E6DB
-    JSR   rtn_10                                  ; E6DE
+    JSR   lcd_home_print                          ; E6DE
 
 lbl_E6E1:
     LDAA  #$F7                                    ; E6E1
@@ -11231,9 +11258,9 @@ dat_E6E6:
 
 rtn_121:
     LDAA  $E6                                     ; E70F
-    LDAB  #$49                                    ; E711
+    LDAB  #PATCH_SIZE                             ; E711
     MUL                                           ; E713
-    ADDD  #$1000                                  ; E714
+    ADDD  #MEMORY_PATCHES                         ; E714
     XGDX                                          ; E717
     PSHX                                          ; E718
     LDAB  #$49                                    ; E719
@@ -11707,8 +11734,8 @@ lbl_E98E:
 ; rtn_120 -
 
 rtn_120:
-    JSR   rtn_9                                   ; E99A
-    LDX   #$2734                                  ; E99D
+    JSR   lcd_clr_buf                             ; E99A
+    LDX   #LCD_BUFFER                             ; E99D
     STX   $40                                     ; E9A0
     LDAA  #$01                                    ; E9A2
     CMPA  $E8                                     ; E9A4
@@ -11720,7 +11747,7 @@ lbl_E9AD:
     LDX   #$E9C8                                  ; E9AD
 
 lbl_E9B0:
-    JSR   rtn_10                                  ; E9B0
+    JSR   lcd_home_print                          ; E9B0
     CLR   $00E8                                   ; E9B3
     RTS                                           ; E9B6
 
@@ -11736,9 +11763,9 @@ dat_E9B7:
 
 rtn_139:
     SEI                                           ; E9D8
-    JSR   rtn_9                                   ; E9D9
+    JSR   lcd_clr_buf                             ; E9D9
     LDX   #$EB65                                  ; E9DC
-    JSR   rtn_10                                  ; E9DF
+    JSR   lcd_home_print                          ; E9DF
     JSR   rtn_140                                 ; E9E2
     LDAB  #$04                                    ; E9E5
     LDX   #$0000                                  ; E9E7
@@ -11756,7 +11783,7 @@ lbl_E9F4:
     STX   $40                                     ; E9F7
     LDAA  $2711                                   ; E9F9
     JSR   rtn_43                                  ; E9FC
-    JSR   rtn_21                                  ; E9FF
+    JSR   lcd_rtn_21                              ; E9FF
     LDAA  $2711                                   ; EA02
     JSR   rtn_141                                 ; EA05
     JSR   rtn_142                                 ; EA08
@@ -11777,7 +11804,7 @@ lbl_EA20:
 
 lbl_EA25:
     SEI                                           ; EA25
-    JSR   rtn_9                                   ; EA26
+    JSR   lcd_clr_buf                             ; EA26
     LDX   #$EB7F                                  ; EA29
     JSR   rtn_42                                  ; EA2C
 
@@ -11830,13 +11857,13 @@ rtn_151:
     STX   $40                                     ; EA7A
     LDAA  $EE                                     ; EA7C
     JSR   rtn_43                                  ; EA7E
-    JMP   rtn_21                                  ; EA81
+    JMP   lcd_rtn_21                              ; EA81
 
 lbl_EA84:
     TIMD  #$1,$53                                 ; EA84
     BNE   lbl_EACF                                ; EA87
     SEI                                           ; EA89
-    JSR   rtn_9                                   ; EA8A
+    JSR   lcd_clr_buf                             ; EA8A
     LDX   #$EBA9                                  ; EA8D
     JSR   rtn_42                                  ; EA90
 
@@ -11883,7 +11910,7 @@ lbl_EAD2:
 
 rtn_163:
     SEI                                           ; EAD5
-    JSR   rtn_9                                   ; EAD6
+    JSR   lcd_clr_buf                             ; EAD6
     LDX   #$EBA9                                  ; EAD9
     JSR   rtn_42                                  ; EADC
     LDX   #$273D                                  ; EADF
@@ -11979,9 +12006,9 @@ dat_EB65:
 ; rtn_141 -
 
 rtn_141:
-    LDAB  #$49                                    ; EBAE
+    LDAB  #PATCH_SIZE                             ; EBAE
     MUL                                           ; EBB0
-    ADDD  #$1000                                  ; EBB1
+    ADDD  #MEMORY_PATCHES                         ; EBB1
     STD   $42                                     ; EBB4
     LDX   #$26C8                                  ; EBB6
     STX   $40                                     ; EBB9
@@ -11993,9 +12020,9 @@ rtn_141:
 rtn_162:
     LDX   #$26C8                                  ; EBBD
     STX   $42                                     ; EBC0
-    LDAB  #$49                                    ; EBC2
+    LDAB  #PATCH_SIZE                             ; EBC2
     MUL                                           ; EBC4
-    ADDD  #$1000                                  ; EBC5
+    ADDD  #MEMORY_PATCHES                         ; EBC5
     STD   $40                                     ; EBC8
     BRA   lbl_EBCC                                ; EBCA
 
@@ -12010,9 +12037,9 @@ rtn_153:
     LDX   #$26C8                                  ; EBD1
     STX   $42                                     ; EBD4
     LDAA  $2711                                   ; EBD6
-    LDAB  #$49                                    ; EBD9
+    LDAB  #PATCH_SIZE                             ; EBD9
     MUL                                           ; EBDB
-    ADDD  #$1000                                  ; EBDC
+    ADDD  #MEMORY_PATCHES                         ; EBDC
     STD   $40                                     ; EBDF
     LDAB  #$49                                    ; EBE1
 
@@ -12244,7 +12271,7 @@ lbl_ECCC:
     LDAA  $F2                                     ; ECD0
     STAA  $00,X                                   ; ECD2
     INX                                           ; ECD4
-    CPX   #$2714                                  ; ECD5
+    CPX   #LCD_SHADOW                             ; ECD5
     BNE   lbl_ECCC                                ; ECD8
     SEC                                           ; ECDA
 
@@ -12461,8 +12488,8 @@ lcd_init_delay_loop3:
     DEX                                           ; EDB4
     BNE   lcd_init_delay_loop3                    ; EDB5
 
-; LCD commnad 0x38
     JSR   lcd_cmd                                 ; EDB7
+; LCD commnad 0x38
 
     JSR   lcd_cmd                                 ; EDBA
 
@@ -12476,55 +12503,55 @@ lcd_init_delay_loop3:
     JSR   lcd_cmd                                 ; EDC9
 
     LDAA  #$FB                                    ; EDCC
-    LDX   #$2714                                  ; EDCE
+    LDX   #LCD_SHADOW                             ; EDCE
 lcd_memset_loop:
-    STAA  $00,X                                   ; EDD1
+    STAA  0,X                                     ; EDD1
     INX                                           ; EDD3
-    CPX   #$2754                                  ; EDD4
+    CPX   #LCD_BUFFER + 32                        ; EDD4
     BNE   lcd_memset_loop                         ; EDD7
 
-    JSR   rtn_9                                   ; EDD9
-    JSR   rtn_21                                  ; EDDC
-    LDX   #$2734                                  ; EDDF
+    JSR   lcd_clr_buf                             ; EDD9
+    JSR   lcd_rtn_21                              ; EDDC
+    LDX   #LCD_BUFFER                             ; EDDF
     STX   $40                                     ; EDE2
 
     LDX   #lcd_banner                             ; EDE4
     JMP   lcd_print                               ; EDE7
 
 lcd_banner:
-    BYTE  $2A, $20, $20, $59, $41, $4D, $41, $48  ; *  YAMAH
-    BYTE  $41, $20, $44, $58, $32, $31, $20, $2A  ; A DX21 *
-    BYTE  $2A, $20, $20, $53, $59, $4E, $54, $48  ; *  SYNTH
-    BYTE  $45, $53, $49, $5A, $45, $52, $20, $2A  ; ESIZER *
-    BYTE  $00                                     ; .
+    BYTE  "*  YAMAHA DX21 *"
+    BYTE  "*  SYNTHESIZER *",0
 
 ;===============================================================================
 ; rtn_30 -
 
 rtn_30:
-    LDAB  $00,X                                   ; EE0B
-    BMI   lbl_EE19                                ; EE0D
+    LDAB  0,X                                     ; EE0B
+    BMI   rtn_30_exit                             ; EE0D
     CMPB  #$20                                    ; EE0F
     BCC   lbl_EE14                                ; EE11
     RTS                                           ; EE13
 
 lbl_EE14:
-    BSR   rtn_31                                  ; EE14
+    BSR   lcd_putc                                ; EE14
     INX                                           ; EE16
     BRA   rtn_30                                  ; EE17
 
-lbl_EE19:
+rtn_30_exit:
     RTS                                           ; EE19
 
 ;===============================================================================
-; rtn_31 -
+; lcd_putc - Push char (B) to buffer pointed to by TMP_PTR1
 
-rtn_31:
+lcd_putc:
     PSHX                                          ; EE1A
-    LDX   $40                                     ; EE1B
-    STAB  $00,X                                   ; EE1D
+
+; Write byte to TMP_PTR1 and increment TMP_PTR1
+    LDX   TMP_PTR1                                ; EE1B
+    STAB  0,X                                     ; EE1D
     INX                                           ; EE1F
-    STX   $40                                     ; EE20
+    STX   TMP_PTR1                                ; EE20
+;
     PULX                                          ; EE22
     RTS                                           ; EE23
 
@@ -12547,47 +12574,61 @@ delay6_loop:
     RTS                                           ; EE2F
 
 ;===============================================================================
-; rtn_21 -
+; lcd_rtn_21 -
 
-rtn_21:
-    LDX   #$2734                                  ; EE30
+lcd_rtn_21:
+    LDX   #LCD_BUFFER                             ; EE30
     STX   $42                                     ; EE33
-    LDX   #$2714                                  ; EE35
+    LDX   #LCD_SHADOW                             ; EE35
     STX   $40                                     ; EE38
+
+; setup LCD cmd for 1st line
     LDAB  #$80                                    ; EE3A
 
-lbl_EE3C:
+lcd_rtn_21_loop:
     LDX   $42                                     ; EE3C
     LDAA  $00,X                                   ; EE3E
     INX                                           ; EE40
     STX   $42                                     ; EE41
+
+; if char already displayed skip
     LDX   $40                                     ; EE43
     CMPA  $00,X                                   ; EE45
-    BEQ   lbl_EE51                                ; EE47
+    BEQ   lcd_rtn_21_skip                         ; EE47
+
     JSR   lcd_cmd                                 ; EE49
     JSR   lcd_chr                                 ; EE4C
     STAA  $00,X                                   ; EE4F
 
-lbl_EE51:
+lcd_rtn_21_skip:
     INX                                           ; EE51
     STX   $40                                     ; EE52
-    INCB                                          ; EE54
-    CMPB  #$D0                                    ; EE55
-    BEQ   lbl_EE61                                ; EE57
-    CMPB  #$90                                    ; EE59
-    BNE   lbl_EE3C                                ; EE5B
-    LDAB  #$C0                                    ; EE5D
-    BRA   lbl_EE3C                                ; EE5F
 
-lbl_EE61:
+; move LCD command to next cell
+    INCB                                          ; EE54
+
+; if end of LCD display reached exit
+    CMPB  #$D0                                    ; EE55
+    BEQ   lcd_rtn_21_exit                         ; EE57
+
+; if end of 1st line
+    CMPB  #$90                                    ; EE59
+    BNE   lcd_rtn_21_loop                         ; EE5B
+
+; then setup LCD cmd for 2nd line
+    LDAB  #$C0                                    ; EE5D
+    BRA   lcd_rtn_21_loop                         ; EE5F
+
+lcd_rtn_21_exit:
     RTS                                           ; EE61
 
 ;===============================================================================
-; rtn_10 -
+; lcd_home_print - Send null terminated text to LCD starting at home
+; in X
 
-rtn_10:
+lcd_home_print:
     PSHX                                          ; EE62
-    LDX   #$2734                                  ; EE63
+    LDX   #LCD_BUFFER                             ; EE63
     STX   $40                                     ; EE66
     PULX                                          ; EE68
 
@@ -12597,21 +12638,21 @@ rtn_10:
 
 lcd_print:
     JSR   rtn_30                                  ; EE69
-    JMP   rtn_21                                  ; EE6C
+    JMP   lcd_rtn_21                              ; EE6C
 
 ;===============================================================================
-; rtn_9 -
+; lcd_clear_buf - Clear screen buffer to spaces
 
-rtn_9:
-    LDX   #$2734                                  ; EE6F
+lcd_clr_buf:
+    LDX   #LCD_BUFFER                             ; EE6F
     LDAA  #$20                                    ; EE72
-    LDAB  #$20                                    ; EE74
 
-lbl_EE76:
-    STAA  $00,X                                   ; EE76
+    LDAB  #32                                     ; EE74
+lcd_clr_buf_loop:
+    STAA  0,X                                     ; EE76
     INX                                           ; EE78
     DECB                                          ; EE79
-    BNE   lbl_EE76                                ; EE7A
+    BNE   lcd_clr_buf_loop                        ; EE7A
     RTS                                           ; EE7C
 
 ;===============================================================================
@@ -12675,7 +12716,7 @@ lbl_EEB1:
     JMP   lbl_F07C                                ; EEB1
 
 lbl_EEB4:
-    JSR   rtn_9                                   ; EEB4
+    JSR   lcd_clr_buf                             ; EEB4
     LDX   #$F052                                  ; EEB7
     JSR   rtn_42                                  ; EEBA
     LDAB  $1C6D                                   ; EEBD
@@ -12703,10 +12744,10 @@ lbl_EEB4:
     STX   $40                                     ; EEEB
     LDX   #$19CA                                  ; EEED
     JSR   rtn_47                                  ; EEF0
-    JMP   rtn_21                                  ; EEF3
+    JMP   lcd_rtn_21                              ; EEF3
 
 lbl_EEF6:
-    JSR   rtn_9                                   ; EEF6
+    JSR   lcd_clr_buf                             ; EEF6
     LDX   #$F056                                  ; EEF9
     JSR   rtn_42                                  ; EEFC
     LDAB  $1C6F                                   ; EEFF
@@ -12734,7 +12775,7 @@ lbl_EEF6:
     STX   $40                                     ; EF2D
     LDX   #$19CA                                  ; EF2F
     JSR   rtn_47                                  ; EF32
-    JMP   rtn_21                                  ; EF35
+    JMP   lcd_rtn_21                              ; EF35
 
 lbl_EF38:
     TST   $0052                                   ; EF38
@@ -12742,7 +12783,7 @@ lbl_EF38:
     JMP   lbl_EFAE                                ; EF3D
 
 lbl_EF40:
-    JSR   rtn_9                                   ; EF40
+    JSR   lcd_clr_buf                             ; EF40
     LDX   #$F046                                  ; EF43
     JSR   rtn_42                                  ; EF46
     LDX   #$2744                                  ; EF49
@@ -12791,19 +12832,19 @@ lbl_EF86:
     STX   $40                                     ; EF8A
     LDX   #$196D                                  ; EF8C
     JSR   rtn_47                                  ; EF8F
-    JMP   rtn_21                                  ; EF92
+    JMP   lcd_rtn_21                              ; EF92
 
 lbl_EF95:
     JSR   rtn_51                                  ; EF95
     BRA   lbl_EF86                                ; EF98
 
 lbl_EF9A:
-    LDX   #$EFA2                                  ; EF9A
+    LDX   #str_Buff                               ; EF9A
     JSR   rtn_30                                  ; EF9D
     BRA   lbl_EF86                                ; EFA0
 
-dat_EFA2:
-    BYTE  $42, $75, $66, $66, $00                 ; Buff.
+str_Buff:
+    BYTE  "Buff",0
 
 ;===============================================================================
 ; rtn_47 -
@@ -12818,7 +12859,7 @@ lbl_EFAE:
     DECA                                          ; EFB0
     CMPA  #$1F                                    ; EFB1
     BLS   lbl_EFED                                ; EFB3
-    JSR   rtn_9                                   ; EFB5
+    JSR   lcd_clr_buf                             ; EFB5
     LDX   #$F05A                                  ; EFB8
     JSR   rtn_42                                  ; EFBB
     LDAB  $1C66                                   ; EFBE
@@ -12845,7 +12886,7 @@ lbl_EFAE:
 lbl_EFE7:
     INX                                           ; EFE7
     STX   $40                                     ; EFE8
-    JMP   rtn_21                                  ; EFEA
+    JMP   lcd_rtn_21                              ; EFEA
 
 lbl_EFED:
     LDX   #$2750                                  ; EFED
@@ -12923,8 +12964,8 @@ dat_F03E:
     BYTE  $45, $00, $49, $2E, $56, $00            ; E.I.V.
 
 lbl_F07C:
-    JSR   rtn_9                                   ; F07C
-    LDX   #$2734                                  ; F07F
+    JSR   lcd_clr_buf                             ; F07C
+    LDX   #LCD_BUFFER                             ; F07F
     STX   $40                                     ; F082
     TST   $0052                                   ; F084
     BEQ   lbl_F08F                                ; F087
@@ -12935,9 +12976,9 @@ lbl_F08F:
     TST   $1C81                                   ; F08F
     BEQ   lbl_F0A4                                ; F092
     LDAB  #$83                                    ; F094
-    JSR   lcd_cmd                                   ; F096
+    JSR   lcd_cmd                                 ; F096
     LDAB  #$0D                                    ; F099
-    JSR   lcd_cmd                                   ; F09B
+    JSR   lcd_cmd                                 ; F09B
     LDX   #$1E8A                                  ; F09E
     STX   $40                                     ; F0A1
     RTS                                           ; F0A3
@@ -13088,7 +13129,7 @@ dat_F184:
     BYTE  $20, $00                                ;  .
 
 lbl_F1B6:
-    JSR   rtn_9                                   ; F1B6
+    JSR   lcd_clr_buf                             ; F1B6
     TST   $1C66                                   ; F1B9
     BEQ   lbl_F1C4                                ; F1BC
     CLR   $1C66                                   ; F1BE
@@ -13100,7 +13141,7 @@ lbl_F1C4:
     JMP   lbl_F545                                ; F1C9
 
 lbl_F1CC:
-    LDX   #$2734                                  ; F1CC
+    LDX   #LCD_BUFFER                             ; F1CC
     LDAA  $1C6A                                   ; F1CF
     BEQ   lbl_F1E0                                ; F1D2
     CMPA  #$01                                    ; F1D4
@@ -13575,7 +13616,7 @@ lbl_F506:
     LDAA $1005B                                   ; F51B
     ADDA  #$30                                    ; F51E
     STAA  $00,X                                   ; F520
-    JMP   rtn_21                                  ; F522
+    JMP   lcd_rtn_21                              ; F522
 
 lbl_F525:
     PSHB                                          ; F525
@@ -13599,7 +13640,7 @@ lbl_F53C:
     STX   $40                                     ; F53C
     CLRA                                          ; F53E
     JSR   rtn_28                                  ; F53F
-    JMP   rtn_21                                  ; F542
+    JMP   lcd_rtn_21                              ; F542
 
 lbl_F545:
     LDX   #$F757                                  ; F545
@@ -13626,7 +13667,7 @@ lbl_F545:
 lbl_F570:
     INX                                           ; F570
     STX   $40                                     ; F571
-    JMP   rtn_21                                  ; F573
+    JMP   lcd_rtn_21                              ; F573
 
 lbl_F576:
     SUBB  #$01                                    ; F576
@@ -13659,7 +13700,7 @@ dat_F587:
     BYTE  $08, $C9, $09, $33, $09, $76, $0A, $23  ; ...3.v.#
 
 lbl_F607:
-    JSR   rtn_9                                   ; F607
+    JSR   lcd_clr_buf                             ; F607
     LDX   #$F773                                  ; F60A
     JMP   lbl_F815                                ; F60D
 
@@ -13719,7 +13760,7 @@ lbl_F78C:
     JMP   lbl_EFAE                                ; F791
 
 lbl_F794:
-    JSR   rtn_9                                   ; F794
+    JSR   lcd_clr_buf                             ; F794
     JSR   rtn_44                                  ; F797
     LDAB  $1C6C                                   ; F79A
     CMPB  #$0C                                    ; F79D
@@ -13733,7 +13774,7 @@ lbl_F7A6:
     LDAB  $1C6A                                   ; F7AC
     CMPB  #$02                                    ; F7AF
     BNE   lbl_F7BA                                ; F7B1
-    LDX   #$2734                                  ; F7B3
+    LDX   #LCD_BUFFER                             ; F7B3
     LDAB  #$66                                    ; F7B6
     STAB  $00,X                                   ; F7B8
 
@@ -13772,7 +13813,7 @@ lbl_F7E3:
     STX   $40                                     ; F7E8
     CLRA                                          ; F7EA
     JSR   rtn_28                                  ; F7EB
-    JMP   rtn_21                                  ; F7EE
+    JMP   lcd_rtn_21                              ; F7EE
 
 lbl_F7F1:
     CMPB  #$02                                    ; F7F1
@@ -13798,7 +13839,7 @@ lbl_F812:
 
 lbl_F815:
     JSR   rtn_45                                  ; F815
-    JMP   rtn_21                                  ; F818
+    JMP   lcd_rtn_21                              ; F818
 
 lbl_F81B:
     CMPB  #$03                                    ; F81B
@@ -13823,7 +13864,7 @@ lbl_F832:
 
 rtn_41:
     JSR   rtn_30                                  ; F835
-    JMP   rtn_21                                  ; F838
+    JMP   lcd_rtn_21                              ; F838
 
 ;===============================================================================
 ; rtn_44 -
@@ -13928,7 +13969,7 @@ lbl_F8C0:
     LDAB  $00,X                                   ; F8D6
     CLRA                                          ; F8D8
     JSR   rtn_28                                  ; F8D9
-    JMP   rtn_21                                  ; F8DC
+    JMP   lcd_rtn_21                              ; F8DC
 
 lbl_F8DF:
     CMPB  #$06                                    ; F8DF
@@ -13987,26 +14028,22 @@ lbl_F933:
 lbl_F941:
     CLRA                                          ; F941
     JSR   rtn_28                                  ; F942
-    JMP   rtn_21                                  ; F945
+    JMP   lcd_rtn_21                              ; F945
 
 lbl_F948:
     LDX   #$FD82                                  ; F948
     JMP   lbl_F815                                ; F94B
 
 lbl_F94E:
-    LDX   #$F958                                  ; F94E
+    LDX   #msg_midi_is_off                        ; F94E
     BRA   lbl_F9AC                                ; F951
 
 lbl_F953:
-    LDX   #$F968                                  ; F953
+    LDX   #msg_sys_info_is_off                    ; F953
     BRA   lbl_F9AC                                ; F956
 
-dat_F958:
-    BYTE  $20, $4D, $69, $64, $69, $20, $69, $73  ;  Midi is
-    BYTE  $20, $4F, $46, $46, $20, $21, $20, $00  ;  OFF ! .
-    BYTE  $53, $79, $73, $20, $49, $6E, $66, $6F  ; Sys Info
-    BYTE  $20, $69, $73, $20, $4F, $46, $46, $21  ;  is OFF!
-    BYTE  $00                                     ; .
+msg_midi_is_off:     BYTE " Midi is OFF ! ",0
+msg_sys_info_is_off: BYTE "Sys Info is OFF!",0
 
 lbl_F979:
     CMPB  #$09                                    ; F979
@@ -14044,7 +14081,7 @@ lbl_F9AC:
 
 lbl_F9AF:
     LDX   #$FDCB                                  ; F9AF
-    JMP   rtn_10                                  ; F9B2
+    JMP   lcd_home_print                          ; F9B2
 
 lbl_F9B5:
     TIMD  #$1,$F9                                 ; F9B5
@@ -14054,7 +14091,7 @@ lbl_F9B5:
 
 lbl_F9BF:
     LDX   #$FDFD                                  ; F9BF
-    JMP   rtn_10                                  ; F9C2
+    JMP   lcd_home_print                          ; F9C2
 
 lbl_F9C5:
     CMPB  #$0E                                    ; F9C5
@@ -14066,7 +14103,7 @@ lbl_F9C5:
 
 lbl_F9D4:
     LDX   #$FE2F                                  ; F9D4
-    JMP   rtn_10                                  ; F9D7
+    JMP   lcd_home_print                          ; F9D7
 
 lbl_F9DA:
     CMPB  #$0F                                    ; F9DA
@@ -14078,7 +14115,7 @@ lbl_F9DA:
 
 lbl_F9E9:
     LDX   #$FE5F                                  ; F9E9
-    JMP   rtn_10                                  ; F9EC
+    JMP   lcd_home_print                          ; F9EC
 
 lbl_F9EF:
     CMPB  #$0B                                    ; F9EF
@@ -14147,7 +14184,7 @@ lbl_FA35:
 
 rtn_42:
     PSHX                                          ; FA56
-    LDX   #$2734                                  ; FA57
+    LDX   #LCD_BUFFER                             ; FA57
     STX   $40                                     ; FA5A
     PULX                                          ; FA5C
     JMP   rtn_30                                  ; FA5D
@@ -14161,7 +14198,7 @@ lbl_FA60:
     JMP   lbl_F815                                ; FA6C
 
 lbl_FA6F:
-    LDX   #$2734                                  ; FA6F
+    LDX   #LCD_BUFFER                             ; FA6F
     LDAA  #$47                                    ; FA72
     STAA  $00,X                                   ; FA74
     INX                                           ; FA76
@@ -14287,7 +14324,7 @@ lbl_FB22:
     PULA                                          ; FB32
     ADDA  #$31                                    ; FB33
     STAA  $00,X                                   ; FB35
-    JMP   rtn_21                                  ; FB37
+    JMP   lcd_rtn_21                              ; FB37
 
 dat_FB3A:
     BYTE  $43, $20, $43, $23, $44, $20, $44, $23  ; C C#D D#
@@ -14303,7 +14340,7 @@ lbl_FB52:
     JSR   rtn_45                                  ; FB5D
     LDX   #$196D                                  ; FB60
     JSR   rtn_47                                  ; FB63
-    JSR   rtn_21                                  ; FB66
+    JSR   lcd_rtn_21                              ; FB66
     LDX   #$196D                                  ; FB69
     STX   $40                                     ; FB6C
     LDAB  #$C0                                    ; FB6E
@@ -14338,7 +14375,7 @@ lbl_FB99:
     LDX   $40                                     ; FBA3
     LDAB  $275A                                   ; FBA5
     BSR   rtn_40                                  ; FBA8
-    JMP   rtn_21                                  ; FBAA
+    JMP   lcd_rtn_21                              ; FBAA
 
 ;===============================================================================
 ; rtn_40 -
