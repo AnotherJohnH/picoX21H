@@ -12438,7 +12438,7 @@ lbl_EDA2:
 ; lcd_init - Inirtialize the LCD and display startup banner
 
 lcd_init:
- LCD command
+; LCD command
     LDAB  #$38                                    ; EDA3
 
     LDX   #$0000                                  ; EDA5
