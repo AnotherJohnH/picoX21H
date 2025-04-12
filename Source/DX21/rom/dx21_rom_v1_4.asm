@@ -1,9 +1,10 @@
 ;
 ; Yamaha DX21 ROM v1.4
-; Reverse engineered source from a publicly available
-; image at https://dbwbpb.com/
 ;
-
+; Note: This file is a reverse-engineered assembler representation of ROM images
+; that are the intellectual property of Yamaha. These files are provided for personal,
+; non-commercial use only. See the LICENSE file for details.
+;
     processor 6803
     include   "mc6803_mac.asm"
 
