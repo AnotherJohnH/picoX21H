@@ -37,7 +37,7 @@ class Synth : public MIDI::Instrument</* N */ 8>
 public:
    Synth() = default;
 
-   void start(unsigned ym2151_clock_hz_)
+   unsigned start(unsigned ym2151_clock_hz_ = YM2151_CLOCK_HZ)
    {
       ym2151.download(ym2151_clock_hz_, /* CLK */ MTL::PIN_4);
       ym2151.start();
@@ -46,6 +46,8 @@ public:
       {
          voiceProgram(i, 0);
       }
+
+      return ym2151_clock_hz_;
    }
 
 private:
@@ -127,7 +129,8 @@ private:
    {
    }
 
-   const uint8_t ID_YAMAHA = 67;
+   static const unsigned YM2151_CLOCK_HZ = 3579545; //!< 3.579545 MHz
+   static const uint8_t  ID_YAMAHA       = 67;
 
    YM2151::Interface<MTL::Pio0,
                      /* CTRL5    */ MTL::PIN_5,

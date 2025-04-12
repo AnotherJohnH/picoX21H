@@ -23,27 +23,25 @@
 // \brief DX21 hybrid simulation for Raspberry Pi Pico
 
 #include <cstdio>
-#include <unistd.h>
 
 #if not defined(HW_NATIVE)
 
 #include "MTL/MTL.h"
-#include "MTL/Gpio.h"
-
-#include "YM2151.h"
 
 #endif
 
 #include "DX21/DX21Synth.h"
 #include "hw/hw.h"
 
-// ------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 
-static const unsigned YM2151_CLOCK_HZ = 3579545;
-static const bool     MIDI_DEBUG      = true;
+static const bool  MIDI_DEBUG      = true;
 
 static DX21::Synth synth{};
 static hw::Led     led{};
+
+
+// --- Physical MIDI -----------------------------------------------------------
 
 //static hw::MidiIn  midi_in{synth, MIDI_DEBUG};
 
@@ -58,6 +56,8 @@ extern "C" void IRQ_USBCTRL() { midi_usb.usb.irq(); }
 
 #endif
 
+
+// -----------------------------------------------------------------------------
 
 extern void startAudio(unsigned);
 
@@ -77,8 +77,9 @@ int main()
    printf("Compiler : %s\n", __VERSION__);
    printf("\n");
 
-   synth.start(YM2151_CLOCK_HZ);
-   startAudio(YM2151_CLOCK_HZ);
+   unsigned ym2151_clock_hz = synth.start();
+
+   startAudio(ym2151_clock_hz);
 
    while(true)
    {
