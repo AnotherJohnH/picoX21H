@@ -133,9 +133,9 @@ private:
    static const uint8_t  ID_YAMAHA       = 67;
 
    YM2151::Interface<MTL::Pio0,
-                     /* CLK_M    */ MTL::PIN_4,
-                     /* CTRL4    */ MTL::PIN_5,
-                     /* DATA8    */ MTL::PIN_11,
+                     /* CTRL4    */ MTL::PIN_4,
+                     /* CLK_M    */ MTL::PIN_9,
+                     /* DATA8    */ MTL::PIN_14,
                      /* REV_DATA */ true> ym2151{};
 };
 

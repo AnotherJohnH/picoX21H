@@ -55,7 +55,7 @@ static void runDAC()
 
 void startAudio(unsigned ym2151_clock_hz_)
 {
-   ymdac_in.download(ym2151_clock_hz_, /* SD SAM1 CLK */ MTL::PIN_21);
+   ymdac_in.download(ym2151_clock_hz_, /* CLK SD SAM1 */ MTL::PIN_10);
    ymdac_in.start();
 
    i2s_out.download(ym2151_clock_hz_, /* SD */ MTL::PIN_29, /* LRCLK SCLK */ MTL::PIN_31);

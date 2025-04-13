@@ -54,8 +54,8 @@ static const uint8_t OP_ALL = OP_M1 | OP_C1 | OP_M2 | OP_C2;
 
 
 template <typename PIO_TYPE,
-          unsigned PIN_CLK_M,  // Pin for CLK_M
           unsigned PIN_CTRL4,  // First pin for _IC, A0, _WR and _RD
+          unsigned PIN_CLK_M,  // Pin for CLK_M
           unsigned PIN_DATA8,  // First pin for D0-D7
           bool     REV_DATA = false>
 class Interface
