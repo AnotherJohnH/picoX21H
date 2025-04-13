@@ -43,7 +43,7 @@ static hw::Led     led{};
 
 // --- Physical MIDI -----------------------------------------------------------
 
-//static hw::MidiIn  midi_in{synth, MIDI_DEBUG};
+static hw::MidiIn  midi_in{synth, MIDI_DEBUG};
 
 
 // --- USB MIDI ----------------------------------------------------------------
@@ -83,6 +83,8 @@ int main()
 
    while(true)
    {
+      midi_in.tick();
+
 #if defined(HW_MIDI_USB_DEVICE)
       midi_usb.tick();
 #endif
