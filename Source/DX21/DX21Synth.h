@@ -39,7 +39,7 @@ public:
 
    unsigned start(unsigned ym2151_clock_hz_ = YM2151_CLOCK_HZ)
    {
-      ym2151.download(ym2151_clock_hz_, /* CLK */ MTL::PIN_4);
+      ym2151.download(ym2151_clock_hz_);
       ym2151.start();
 
       for(unsigned i = 0; i < NUM_VOICES; ++i)
@@ -133,7 +133,8 @@ private:
    static const uint8_t  ID_YAMAHA       = 67;
 
    YM2151::Interface<MTL::Pio0,
-                     /* CTRL5    */ MTL::PIN_5,
+                     /* CLK_M    */ MTL::PIN_4,
+                     /* CTRL4    */ MTL::PIN_5,
                      /* DATA8    */ MTL::PIN_11,
                      /* REV_DATA */ true> ym2151{};
 };

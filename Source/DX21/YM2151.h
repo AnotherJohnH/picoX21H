@@ -54,7 +54,8 @@ static const uint8_t OP_ALL = OP_M1 | OP_C1 | OP_M2 | OP_C2;
 
 
 template <typename PIO_TYPE,
-          unsigned PIN_CTRL5,  // First pin for _IC, A0, _WR, _RD and _CS
+          unsigned PIN_CLK_M,  // Pin for CLK_M
+          unsigned PIN_CTRL4,  // First pin for _IC, A0, _WR and _RD
           unsigned PIN_DATA8,  // First pin for D0-D7
           bool     REV_DATA = false>
 class Interface
@@ -62,10 +63,9 @@ class Interface
 public:
    Interface() = default;
 
-   signed download(unsigned clock_freq_,
-                   unsigned pin_clock_)
+   signed download(unsigned clock_freq_)
    {
-      sd = clock.download(pio, clock_freq_, pin_clock_);
+      sd = clock.download(pio, clock_freq_, PIN_CLK_M);
       return sd;
    }
 
@@ -334,11 +334,13 @@ private:
    MTL::Gpio::InOut<8, PIN_DATA8> data8;
 
    //!< Control signals
-   MTL::Gpio::Out<1, PIN_CTRL5+0> _ic; //!< Initial clear
-   MTL::Gpio::Out<1, PIN_CTRL5+1> a0;  //!< 0=>address, 1=>data
-   MTL::Gpio::Out<1, PIN_CTRL5+2> _wr; //!< Write
-   MTL::Gpio::Out<1, PIN_CTRL5+3> _rd; //!< Read
-   MTL::Gpio::Out<1, PIN_CTRL5+4> _cs; //!< Chip select
+   MTL::Gpio::Out<1, PIN_CTRL4+0> _ic; //!< Initial clear
+   MTL::Gpio::Out<1, PIN_CTRL4+1> a0;  //!< 0=>address, 1=>data
+   MTL::Gpio::Out<1, PIN_CTRL4+2> _wr; //!< Write
+   MTL::Gpio::Out<1, PIN_CTRL4+3> _rd; //!< Read
+
+   // MTL::Gpio::Out<1, PIN_CTRL5+4> _cs; //!< Chip select
+   bool                           _cs; //!< dummy chip select
 
    uint8_t shadow[256];
 
