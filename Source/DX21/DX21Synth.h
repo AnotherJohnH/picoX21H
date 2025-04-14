@@ -29,13 +29,17 @@
 #include "YM2151.h"
 #include "SysEx.h"
 #include "Table_dx21_rom.h"
+#include "../SynthIO.h"
 
 namespace DX21 {
 
 class Synth : public MIDI::Instrument</* N */ 8>
 {
 public:
-   Synth() = default;
+   Synth(SynthIO& synth_io_)
+      : io(synth_io_)
+   {
+   }
 
    unsigned start(unsigned ym2151_clock_hz_ = YM2151_CLOCK_HZ)
    {
@@ -46,6 +50,9 @@ public:
       {
          voiceProgram(i, 0);
       }
+
+      io.displayLCD(0, "*   picoX21H   *");
+      io.displayLCD(1, "*  SYNTHESIZER *");
 
       return ym2151_clock_hz_;
    }
@@ -131,6 +138,8 @@ private:
 
    static const unsigned YM2151_CLOCK_HZ = 3579545; //!< 3.579545 MHz
    static const uint8_t  ID_YAMAHA       = 67;
+
+   SynthIO& io;
 
    YM2151::Interface<MTL::Pio0,
                      /* CTRL4    */ MTL::PIN_4,

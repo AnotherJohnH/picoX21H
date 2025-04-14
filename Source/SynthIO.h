@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright (c) 2024 John D. Haughton
+// Copyright (c) 2023 John D. Haughton
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,11 +20,19 @@
 // SOFTWARE.
 //------------------------------------------------------------------------------
 
-// \brief Hardware interfaces
-
 #pragma once
 
-#include "hw/Lcd.h"
-#include "hw/Led.h"
-#include "hw/MidiUsbDevice.h"
-#include "hw/MidiIn.h"
+#include <cstdint>
+
+//! I/O interfaces for the Synth
+class SynthIO
+{
+public:
+   SynthIO() = default;
+
+   //! Display number on 2x 7 segment LED
+   void displayLED(unsigned number_);
+
+   //! Display on text on 16x2 LCD
+   void displayLCD(unsigned row_, const char* text);
+};

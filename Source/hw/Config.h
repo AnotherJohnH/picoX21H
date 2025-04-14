@@ -32,6 +32,8 @@
 #define HW_MIDI_IN_UART1
 #define HW_DAC_PIMORONI_PICO_AUDIO
 #define HW_LED
+#define HW_LCD_I2C
+#define HW_LCD_I2C_ADDR 0x3E
 
 #elif defined(HW_WAVESHARE_I2S)
 
@@ -41,6 +43,8 @@
 #define HW_MIDI_IN_UART1
 #define HW_DAC_WAVESHARE
 #define HW_LED
+#define HW_LCD_I2C
+#define HW_LCD_I2C_ADDR 0x3E
 
 #elif defined(HW_PWM_DAC)
 
@@ -50,6 +54,8 @@
 #define HW_MIDI_IN_UART1
 #define HW_DAC_PWM
 #define HW_LED
+#define HW_LCD_I2C
+#define HW_LCD_I2C_ADDR 0x3E
 
 #else
 

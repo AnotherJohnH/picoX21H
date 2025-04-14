@@ -33,11 +33,14 @@
 #include "DX21/DX21Synth.h"
 #include "hw/hw.h"
 
+#include "SynthIO.h"
+
 // -----------------------------------------------------------------------------
 
 static const bool  MIDI_DEBUG      = true;
 
-static DX21::Synth synth{};
+static SynthIO     synth_io{};
+static DX21::Synth synth{synth_io};
 static hw::Led     led{};
 
 
@@ -55,6 +58,23 @@ static hw::MidiUSBDevice midi_usb{synth, 0x91C0, "picoX21H", MIDI_DEBUG};
 extern "C" void IRQ_USBCTRL() { midi_usb.usb.irq(); }
 
 #endif
+
+
+// --- 16x2 LCD display --------------------------------------------------------
+
+#if not defined(HW_LCD_NONE)
+
+static hw::Lcd lcd{};
+
+#endif
+
+void SynthIO::displayLCD(unsigned row, const char* text)
+{
+#if not defined(HW_LCD_NONE)
+   lcd.move(0, row);
+   lcd.print(text);
+#endif
+}
 
 
 // -----------------------------------------------------------------------------
