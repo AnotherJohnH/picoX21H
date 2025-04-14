@@ -4,6 +4,8 @@
 
 A hybrid software/hardware simulation of the Yamaha DX21, using a Raspberry Pi Pico, a YM2151 (OPM) sound chip and an I2S DAC.
 
+[Block Diagram](docs/block_diagram.pdf)
+
 ## Status
 
 It's a working musical instrument! Any of the 128 preset patches from the DX21 ROM (v1.5)
@@ -28,7 +30,7 @@ To do...
 
 ![prototype](docs/breadboard.jpg)
 
-[Schematic](docs/schematic.pdf) for the above.
+[Schematic](docs/schematic.pdf) for the above. (matches software may not always match image above)
 
 ## Software
 
