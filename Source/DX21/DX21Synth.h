@@ -23,6 +23,7 @@
 #pragma once
 
 #include <cstdio>
+#include <unistd.h>
 
 #include "STB/MIDIInstrument.h"
 
@@ -46,13 +47,15 @@ public:
       ym2151.download(ym2151_clock_hz_);
       ym2151.start();
 
+      io.displayLCD(0, "*   picoX21H   *");
+      io.displayLCD(1, "*  SYNTHESIZER *");
+
+      usleep(1000000);
+
       for(unsigned i = 0; i < NUM_VOICES; ++i)
       {
          voiceProgram(i, 0);
       }
-
-      io.displayLCD(0, "*   picoX21H   *");
-      io.displayLCD(1, "*  SYNTHESIZER *");
 
       return ym2151_clock_hz_;
    }
@@ -62,9 +65,6 @@ private:
    void voiceProgram(unsigned index_, uint8_t number_) override
    {
       SysEx::Voice voice{table_dx21_rom, number_};
-
-      if (index_ == 0)
-         voice.print(number_);
 
       for(unsigned i = 0; i < SysEx::NUM_OP; ++i)
       {
@@ -94,6 +94,21 @@ private:
       ym2151.setCh<YM2151::KF>(    index_, 0);
       ym2151.setCh<YM2151::AMS>(   index_, 0);
       ym2151.setCh<YM2151::PMS>(   index_, 0);
+
+      if (index_ == 0)
+      {
+         // Debug console output
+         voice.print(number_);
+
+         // 16x2 LCD output
+         char line[32];
+         snprintf(line, sizeof(line), "%03u             ", number_);
+         memcpy(line + 4, (const char*)voice.name, 10);
+         io.displayLCD(0, line);
+
+         snprintf(line, sizeof(line), "A%1u F%1u           ", voice.alg, voice.fb);
+         io.displayLCD(1, line);
+      }
    }
 
    void voiceMute(unsigned index_) override

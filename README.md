@@ -14,17 +14,17 @@ closely resemble those of a real DX21.
 
 Working...
    + USB MIDI interface (in "peripheral" mode)
-   + Physical MIDI interface (untested, but likely functional)
+   + Physical MIDI interface
    + Basic integration of MIDI ins with the software synth framework
    + YM2151 (OPM) driver
    + PIO-based YM3012 (DAC) interface
    + Captured YM3012 format samples translated to I2S (currently driving a Pimoroni Pico Audio module)
+   + 16x2 LCD display
 
 To do...
    + Verify that the YM2151 can accurately replicate the sound of the YM2164, the similar but different chip used in the DX21
    + Complete the implementation of YM2151 register control from all patch parameters
    + Implement a chorus, and maybe even reverb on the Pico's second core as the audio passes through to the I2S DAC
-   + Add a 16x2 LCD interface
 
 ## Hardware
 
