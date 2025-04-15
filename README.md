@@ -30,7 +30,7 @@ To do...
 
 ![prototype](docs/breadboard.jpg)
 
-[Schematic](docs/schematic.pdf) for the above. (matches software may not always match image above)
+[Schematic](docs/schematic.pdf) for the above.
 
 ## Software
 
