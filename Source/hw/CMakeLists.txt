@@ -26,7 +26,7 @@ target_include_directories(HW INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/..)
 if(${PLT_TARGET} STREQUAL rpipico)
 
    set(hw_config_list
-       PIMORONI_PICO_AUDIO
+       I2S_DAC
        PWM_DAC
        PARENT_SCOPE)
 
@@ -35,10 +35,18 @@ if(${PLT_TARGET} STREQUAL rpipico)
 elseif(${PLT_TARGET} STREQUAL rpipico2)
 
    set(hw_config_list
-       PIMORONI_PICO_AUDIO
+       I2S_DAC
        PWM_DAC
        PARENT_SCOPE)
 
    target_link_libraries(HW INTERFACE TNY MTL TNY)
+
+elseif(${PLT_TARGET} STREQUAL native)
+
+   set(hw_config_list
+       NATIVE
+       PARENT_SCOPE)
+
+   target_link_libraries(HW INTERFACE PLT STB)
 
 endif()
