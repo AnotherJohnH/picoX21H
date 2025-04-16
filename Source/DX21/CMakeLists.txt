@@ -34,10 +34,13 @@ add_custom_command(
    OUTPUT
       ${CMAKE_CURRENT_BINARY_DIR}/Table_dx21_rom.h
       ${CMAKE_CURRENT_BINARY_DIR}/Table_dx21_rom.cpp
+      ${CMAKE_CURRENT_BINARY_DIR}/Table_iG10090_sine.h
+      ${CMAKE_CURRENT_BINARY_DIR}/Table_iG10090_sine.cpp
    )
 
 add_library(DX21 STATIC
    Table_dx21_rom.cpp
+   Table_iG10090_sine.cpp
    SysEx.cpp
    )
 

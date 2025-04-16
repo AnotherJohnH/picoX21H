@@ -21,8 +21,16 @@
 # SOFTWARE.
 #------------------------------------------------------------------------------
 
+import math
 import table
 import sys
+
+
+def sine64(index_6, x):
+   """  """
+   phase = ((index_6 + 0.5) * math.pi) / 32
+   return int(math.sin(phase) * 32)
+
 
 filename = sys.argv[1]
 
@@ -40,4 +48,6 @@ table.gen("dx21_rom",
           typename  = "uint8_t",
           size      = 0x24A0,
           fmt       = '02x')
+
+table.gen("iG10090_sine", func = sine64, typename = "int8_t", log2_size = 6)
 
