@@ -27,7 +27,6 @@ if(${PLT_TARGET} STREQUAL rpipico)
 
    set(hw_config_list
        PIMORONI_PICO_AUDIO
-       WAVESHARE_I2S
        PWM_DAC
        PARENT_SCOPE)
 
@@ -37,7 +36,6 @@ elseif(${PLT_TARGET} STREQUAL rpipico2)
 
    set(hw_config_list
        PIMORONI_PICO_AUDIO
-       WAVESHARE_I2S
        PWM_DAC
        PARENT_SCOPE)
 
