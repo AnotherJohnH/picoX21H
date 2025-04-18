@@ -5508,8 +5508,8 @@ lbl_BEB9:
 ; Write OPM note on/off register
     LDAA  #$08                                    ; BEC5
     JSR   wait_for_OPM                            ; BEC7
-    STAA  $24                                     ; BECA
-    STAB  $25                                     ; BECC
+    STAA  OPM_ADDR                                ; BECA
+    STAB  OPM_DATA                                ; BECC
 
     LDD   $6C                                     ; BECE
     SUBA  #$0C                                    ; BED0
@@ -5603,8 +5603,8 @@ lbl_BF4A:
 ; Write OPM note on/off register
     LDAA  #$08                                    ; BF56
     JSR   wait_for_OPM                            ; BF58
-    STAA  $24                                     ; BF5B
-    STAB  $25                                     ; BF5D
+    STAA  OPM_ADDR                                ; BF5B
+    STAB  OPM_DATA                                ; BF5D
 
     ADDB  #$04                                    ; BF5F
     JSR   rtn_93                                  ; BF61
@@ -5612,8 +5612,8 @@ lbl_BF4A:
 ; Write OPM note on/off register
     LDAA  #$08                                    ; BF64
     JSR   wait_for_OPM                            ; BF66
-    STAA  $24                                     ; BF69
-    STAB  $25                                     ; BF6B
+    STAA  OPM_ADDR                                ; BF69
+    STAB  OPM_DATA                                ; BF6B
 
     LDD   $6C                                     ; BF6D
     SUBA  #$0C                                    ; BF6F
@@ -5754,8 +5754,8 @@ lbl_C033:
 ; Write OPM note on/off register
     LDAA  #$08                                    ; C041
     JSR   wait_for_OPM                            ; C043
-    STAA  $24                                     ; C046
-    STAB  $25                                     ; C048
+    STAA  OPM_ADDR                                ; C046
+    STAB  OPM_DATA                                ; C048
 
     LDD   $6C                                     ; C04A
     SUBA  #$0C                                    ; C04C
@@ -5912,8 +5912,8 @@ lbl_C17D:
     CLRB                                          ; C197
     JSR   rtn_93                                  ; C198
     JSR   wait_for_OPM                            ; C19B
-    STAA  $24                                     ; C19E
-    STAB  $25                                     ; C1A0
+    STAA  OPM_ADDR                                ; C19E
+    STAB  OPM_DATA                                ; C1A0
 
     LDD   $6C                                     ; C1A2
     SUBA  #$0C                                    ; C1A4
@@ -6049,8 +6049,8 @@ lbl_C241:
 ; Write OPM note on/off register
     LDAA  #$08                                    ; C260
     JSR   wait_for_OPM                            ; C262
-    STAA  $24                                     ; C265
-    STAB  $25                                     ; C267
+    STAA  OPM_ADDR                                ; C265
+    STAB  OPM_DATA                                ; C267
 
     JSR   rtn_80                                  ; C269
     PULA                                          ; C26C
@@ -6169,8 +6169,8 @@ lbl_C2F6:
 ; Write OPM note on/off register
     LDAA  #$08                                    ; C315
     JSR   wait_for_OPM                            ; C317
-    STAA  $24                                     ; C31A
-    STAB  $25                                     ; C31C
+    STAA  OPM_ADDR                                ; C31A
+    STAB  OPM_DATA                                ; C31C
 
     PULA                                          ; C31E
     STAA  $08                                     ; C31F
@@ -6230,8 +6230,8 @@ lbl_C35F:
     CLRB                                          ; C379
     LDAA  #$08                                    ; C37A
     JSR   wait_for_OPM                            ; C37C
-    STAA  $24                                     ; C37F
-    STAB  $25                                     ; C381
+    STAA  OPM_ADDR                                ; C37F
+    STAB  OPM_DATA                                ; C381
 
     PULA                                          ; C383
     STAA  $08                                     ; C384
@@ -6334,17 +6334,19 @@ rtn_95:
     LDAA  #$09                                    ; C402
     LDAB  #$02                                    ; C404
     SEI                                           ; C406
+
 lbl_C407:
-    TST   $0025                                   ; C407
+    TST   OPM_DATA                                ; C407
     BMI   lbl_C407                                ; C40A
-    STAA  $24                                     ; C40C
-    STAB  $25                                     ; C40E
+    STAA  OPM_ADDR                                ; C40C
+    STAB  OPM_DATA                                ; C40E
+
     CLRB                                          ; C410
 lbl_C411:
-    TST   $0025                                   ; C411
+    TST   OPM_DATA                                ; C411
     BMI   lbl_C411                                ; C414
-    STAA  $24                                     ; C416
-    STAB  $25                                     ; C418
+    STAA  OPM_ADDR                                ; C416
+    STAB  OPM_DATA                                ; C418
     CLI                                           ; C41A
 
 lbl_C41B:
@@ -6514,18 +6516,22 @@ lbl_C4DF:
     BRA   lbl_C49C                                ; C4EA
 
 ;===============================================================================
-; rtn_93 -
+; rtn_93 - Set the release rate to 0x0C
 
 rtn_93:
     PSHB                                          ; C4EC
     PSHX                                          ; C4ED
+
     STAB  $8D                                     ; C4EE
     LDX   #$2347                                  ; C4F0
     ABX                                           ; C4F3
     CLR   $00,X                                   ; C4F4
+
+; OP loop counter is 0
     CLR   $008E                                   ; C4F6
 
-lbl_C4F9:
+rtn_93_next_op:
+; Compute register address for OP and channel RR
     LDAA  $8E                                     ; C4F9
     ASLA                                          ; C4FB
     ASLA                                          ; C4FC
@@ -6533,16 +6539,20 @@ lbl_C4F9:
     ORAA  $8D                                     ; C4FE
     ORAA  #$E0                                    ; C500
 
-lbl_C502:
-    TST   $0025                                   ; C502
-    BMI   lbl_C502                                ; C505
+rtn_93_opm_wait:
+    TST   OPM_DATA                                ; C502
+    BMI   rtn_93_opm_wait                         ; C505
+
     LDAB  #$0C                                    ; C507
-    STAA  $24                                     ; C509
-    STAB  $25                                     ; C50B
+    STAA  OPM_ADDR                                ; C509
+    STAB  OPM_DATA                                ; C50B
+
+; OP loop
     INC   $008E                                   ; C50D
     LDAA  $8E                                     ; C510
     CMPA  #$04                                    ; C512
-    BNE   lbl_C4F9                                ; C514
+    BNE   rtn_93_next_op                          ; C514
+
     PULX                                          ; C516
     PULB                                          ; C517
     RTS                                           ; C518
@@ -6768,13 +6778,13 @@ lbl_C629:
 lbl_C62B:
     STAA  $1EEF                                   ; C62B
     CLRB                                          ; C62E
-    LDAA  #$08                                    ; C62F
 
+    LDAA  #$08                                    ; C62F
 lbl_C631:
     TIMX  #$1,$1,X                                ; C631
     BEQ   lbl_C66A                                ; C634
     JSR   wait_for_OPM                            ; C636
-    STAA  $24                                     ; C639
+    STAA  OPM_ADDR                                ; C639
     PSHB                                          ; C63B
     CMPB  #$07                                    ; C63C
     BLS   lbl_C643                                ; C63E
@@ -6782,7 +6792,7 @@ lbl_C631:
     INCB                                          ; C642
 
 lbl_C643:
-    STAB  $25                                     ; C643
+    STAB  OPM_DATA                                ; C643
     LDAB  $1C66                                   ; C645
     CMPB  #$01                                    ; C648
     BEQ   lbl_C652                                ; C64A
@@ -6795,8 +6805,8 @@ lbl_C652:
     PSHB                                          ; C653
     ADDB  #$04                                    ; C654
     JSR   wait_for_OPM                            ; C656
-    STAA  $24                                     ; C659
-    STAB  $25                                     ; C65B
+    STAA  OPM_ADDR                                ; C659
+    STAB  OPM_DATA                                ; C65B
 
 lbl_C65D:
     PULB                                          ; C65D
@@ -6851,10 +6861,11 @@ lbl_C68E:
     STAB  $70                                     ; C694
     LSRB                                          ; C696
     JSR   rtn_93                                  ; C697
+
     LDAA  #$08                                    ; C69A
     JSR   wait_for_OPM                            ; C69C
-    STAA  $24                                     ; C69F
-    STAB  $25                                     ; C6A1
+    STAA  OPM_ADDR                                ; C69F
+    STAB  OPM_DATA                                ; C6A1
 
     LDD   $6C                                     ; C6A3
     SUBA  #$0C                                    ; C6A5
@@ -6954,8 +6965,8 @@ lbl_C718:
 ; write OPM note on/off
     LDAA  #$08                                    ; C725
     JSR   wait_for_OPM                            ; C727
-    STAA  $24                                     ; C72A
-    STAB  $25                                     ; C72C
+    STAA  OPM_ADDR                                ; C72A
+    STAB  OPM_DATA                                ; C72C
 
     LDD   $6C                                     ; C72E
     SUBA  #$0C                                    ; C730
@@ -7072,8 +7083,8 @@ lbl_C7B1:
 ; write OPM note on/off
     LDAA  #$08                                    ; C7D0
     JSR   wait_for_OPM                            ; C7D2
-    STAA  $24                                     ; C7D5
-    STAB  $25                                     ; C7D7
+    STAA  OPM_ADDR                                ; C7D5
+    STAB  OPM_DATA                                ; C7D7
 
     PULA                                          ; C7D9
     STAA  $08                                     ; C7DA
@@ -7139,8 +7150,8 @@ lbl_C80E:
     LDAA  #$08                                    ; C82D
     INCB                                          ; C82F
     JSR   wait_for_OPM                            ; C830
-    STAA  $24                                     ; C833
-    STAB  $25                                     ; C835
+    STAA  OPM_ADDR                                ; C833
+    STAB  OPM_DATA                                ; C835
 
     PULA                                          ; C837
     STAA  $08                                     ; C838
@@ -7192,8 +7203,8 @@ lbl_C85F:
     CLRB                                          ; C876
     JSR   rtn_93                                  ; C877
     JSR   wait_for_OPM                            ; C87A
-    STAA  $24                                     ; C87D
-    STAB  $25                                     ; C87F
+    STAA  OPM_ADDR                                ; C87D
+    STAB  OPM_DATA                                ; C87F
 
     LDD   $6C                                     ; C881
     SUBA  #$0C                                    ; C883
@@ -7289,8 +7300,8 @@ lbl_C8ED:
     LDAB  #$07                                    ; C904
     JSR   rtn_93                                  ; C906
     JSR   wait_for_OPM                            ; C909
-    STAA  $24                                     ; C90C
-    STAB  $25                                     ; C90E
+    STAA  OPM_ADDR                                ; C90C
+    STAB  OPM_DATA                                ; C90E
 
     LDD   $6C                                     ; C910
     SUBA  #$0C                                    ; C912
@@ -7386,15 +7397,15 @@ lbl_C97D:
     CLRB                                          ; C994
     JSR   rtn_93                                  ; C995
     JSR   wait_for_OPM                            ; C998
-    STAA  $24                                     ; C99B
-    STAB  $25                                     ; C99D
+    STAA  OPM_ADDR                                ; C99B
+    STAB  OPM_DATA                                ; C99D
 
 ; write OPM note on/off
     LDAB  #$04                                    ; C99F
     JSR   rtn_93                                  ; C9A1
     JSR   wait_for_OPM                            ; C9A4
-    STAA  $24                                     ; C9A7
-    STAB  $25                                     ; C9A9
+    STAA  OPM_ADDR                                ; C9A7
+    STAB  OPM_DATA                                ; C9A9
 
     LDD   $6C                                     ; C9AB
     SUBA  #$0C                                    ; C9AD
@@ -7493,8 +7504,8 @@ lbl_CA30:
     CLRB                                          ; CA46
     LDAA  #$08                                    ; CA47
     JSR   wait_for_OPM                            ; CA49
-    STAA  $24                                     ; CA4C
-    STAB  $25                                     ; CA4E
+    STAA  OPM_ADDR                                ; CA4C
+    STAB  OPM_DATA                                ; CA4E
 
     PULA                                          ; CA50
     STAA  $08                                     ; CA51
@@ -7618,8 +7629,8 @@ lbl_CAE3:
     LDAB  #$07                                    ; CAF9
     LDAA  #$08                                    ; CAFB
     JSR   wait_for_OPM                            ; CAFD
-    STAA  $24                                     ; CB00
-    STAB  $25                                     ; CB02
+    STAA  OPM_ADDR                                ; CB00
+    STAB  OPM_DATA                                ; CB02
 
     PULA                                          ; CB04
     STAA  $08                                     ; CB05
@@ -7745,14 +7756,14 @@ lbl_CB97:
     CLRB                                          ; CBB3
     LDAA  #$08                                    ; CBB4
     JSR   wait_for_OPM                            ; CBB6
-    STAA  $24                                     ; CBB9
-    STAB  $25                                     ; CBBB
+    STAA  OPM_ADDR                                ; CBB9
+    STAB  OPM_DATA                                ; CBBB
 
 ; write OPM note on/off
     LDAB  #$04                                    ; CBBD
     JSR   wait_for_OPM                            ; CBBF
-    STAA  $24                                     ; CBC2
-    STAB  $25                                     ; CBC4
+    STAA  OPM_ADDR                                ; CBC2
+    STAB  OPM_DATA                                ; CBC4
 
     PULA                                          ; CBC6
     STAA  $08                                     ; CBC7
@@ -7944,14 +7955,14 @@ rtn_3:
     CLRB                                          ; CCA0
 lbl_CCA1:
     JSR   wait_for_OPM                            ; CCA1
-    STAA  $24                                     ; CCA4
+    STAA  OPM_ADDR                                ; CCA4
 
 lbl_CCA6:
     BRN   lbl_CCA6                                ; CCA6
 
 lbl_CCA8:
     BRN   lbl_CCA8                                ; CCA8
-    STAB  $25                                     ; CCAA
+    STAB  OPM_DATA                                ; CCAA
     INCB                                          ; CCAC
     CMPB  #$08                                    ; CCAD
     BNE   lbl_CCA1                                ; CCAF
@@ -8261,14 +8272,14 @@ dat_CEB8:
     BYTE  $43, $86, $1F, $97, $24, $0E, $39       ; C...$.9
 
 ;===============================================================================
-; rtn_58 -
+; rtn_58 - Write CT1, CT2 and LFO.W = *0x195B
 
 rtn_58:
     LDAA  $195B                                   ; CF2F
     LDAB  #$1B                                    ; CF32
     SEI                                           ; CF34
     JSR   wait_for_OPM                            ; CF35
-    STAB  $24                                     ; CF38
+    STAB  OPM_ADDR                                ; CF38
 
 lbl_CF3A:
     BRN   lbl_CF3A                                ; CF3A
@@ -8276,7 +8287,7 @@ lbl_CF3A:
 lbl_CF3C:
     BRN   lbl_CF3C                                ; CF3C
 
-    STAA  $25                                     ; CF3E
+    STAA  OPM_DATA                                ; CF3E
     CLI                                           ; CF40
     RTS                                           ; CF41
 
@@ -8588,16 +8599,16 @@ lbl_D4F1:
     SEI                                           ; D4F6
 
 lbl_D4F7:
-    TST   $0025                                   ; D4F7
+    TST   OPM_DATA                                ; D4F7
     BMI   lbl_D4F7                                ; D4FA
-    STAB  $24                                     ; D4FC
+    STAB  OPM_ADDR                                ; D4FC
 
 lbl_D4FE:
     BRN   lbl_D4FE                                ; D4FE
 
 lbl_D500:
     BRN   lbl_D500                                ; D500
-    STAA  $25                                     ; D502
+    STAA  OPM_DATA                                ; D502
     CLI                                           ; D504
     LDAB  $A5                                     ; D505
     INCB                                          ; D507
@@ -8762,7 +8773,7 @@ lbl_D5E4:
 
 lbl_D5E6:
     BRN   lbl_D5E6                                ; D5E6
-    STAB  $25                                     ; D5E8
+    STAB  OPM_DATA                                ; D5E8
     ADDA  #$08                                    ; D5EA
     LDAB  $9C                                     ; D5EC
 
@@ -8776,7 +8787,7 @@ lbl_D5F5:
 
 lbl_D5F7:
     BRN   lbl_D5F7                                ; D5F7
-    STAB  $25                                     ; D5F9
+    STAB  OPM_DATA                                ; D5F9
     CLI                                           ; D5FB
 
 lbl_D5FC:
@@ -9327,22 +9338,22 @@ lbl_D91E:
     LDAB  $9B                                     ; D92F
 
 lbl_D931:
-    TST   $0025                                   ; D931
+    TST   OPM_DATA                                ; D931
     BMI   lbl_D931                                ; D934
     SEI                                           ; D936
 
 lbl_D937:
     BRN   lbl_D937                                ; D937
-    STAA  $24                                     ; D939
-    STAB  $25                                     ; D93B
+    STAA  OPM_ADDR                                ; D939
+    STAB  OPM_DATA                                ; D93B
     ADDA  #$08                                    ; D93D
     LDAB  $9C                                     ; D93F
 
 lbl_D941:
     TST   $0025                                   ; D941
     BMI   lbl_D941                                ; D944
-    STAA  $24                                     ; D946
-    STAB  $25                                     ; D948
+    STAA  OPM_ADDR                                ; D946
+    STAB  OPM_DATA                                ; D948
     CLI                                           ; D94A
     DEX                                           ; D94B
     DEX                                           ; D94C
@@ -9477,8 +9488,8 @@ lbl_DA07:
 
 lbl_DA0E:
     LDAB  $B3                                     ; DA0E
-    STAB  $24                                     ; DA10
-    STAA  $25                                     ; DA12
+    STAB  OPM_ADDR                                ; DA10
+    STAA  OPM_DATA                                ; DA12
 
 lbl_DA14:
     INC   $00B3                                   ; DA14
@@ -9582,8 +9593,8 @@ lbl_DA94:
 lbl_DAB3:
     SEC                                           ; DAB3
     RORA                                          ; DAB4
-    STAB  $24                                     ; DAB5
-    STAA  $25                                     ; DAB7
+    STAB  OPM_ADDR                                ; DAB5
+    STAA  OPM_DATA                                ; DAB7
     PULA                                          ; DAB9
     DEX                                           ; DABA
     DEC   $00B3                                   ; DABB
@@ -9617,8 +9628,8 @@ lbl_DAE7:
     SUBA  $2417                                   ; DAE7
     LSRA                                          ; DAEA
     LDAB  #$19                                    ; DAEB
-    STAB  $24                                     ; DAED
-    STAA  $25                                     ; DAEF
+    STAB  OPM_ADDR                                ; DAED
+    STAA  OPM_DATA                                ; DAEF
     RTS                                           ; DAF1
 
 dat_DAF2:
@@ -9713,8 +9724,8 @@ lbl_DC52:
     LSRA                                          ; DC52
     ORAA  #$80                                    ; DC53
     LDAB  #$19                                    ; DC55
-    STAB  $24                                     ; DC57
-    STAA  $25                                     ; DC59
+    STAB  OPM_ADDR                                ; DC57
+    STAA  OPM_DATA                                ; DC59
     RTS                                           ; DC5B
 
 dat_DC5C:
@@ -10084,7 +10095,7 @@ rtn_190:
     CLR   $00C6                                   ; DEDE
     LDX   #$2347                                  ; DEE1
 
-lbl_DEE4:
+rtn_190_chan_loop:
     LDAA  $00,X                                   ; DEE4
     BNE   lbl_DF1F                                ; DEE6
     PSHX                                          ; DEE8
@@ -10100,26 +10111,28 @@ lbl_DEEC:
     ABX                                           ; DEF6
     LDAA  $00,X                                   ; DEF7
 
-lbl_DEF9:
-    TST   $0025                                   ; DEF9
-    BMI   lbl_DEF9                                ; DEFC
+rtn_190_opm_wait1:
+    TST   OPM_DATA                                ; DEF9
+    BMI   rtn_190_opm_wait1                       ; DEFC
     ADDB  #$E0                                    ; DEFE
-    STAB  $24                                     ; DF00
-    STAA  $25                                     ; DF02
+    STAB  OPM_ADDR                                ; DF00
+    STAA  OPM_DATA                                ; DF02
+
     INC   $00B3                                   ; DF04
     LDAB  $B3                                     ; DF07
     CMPB  #$04                                    ; DF09
     BNE   lbl_DEEC                                ; DF0B
+
     PULX                                          ; DF0D
     LDAB  $C6                                     ; DF0E
     ORAB  #$78                                    ; DF10
     LDAA  #$08                                    ; DF12
+rtn_190_opm_wait2:
+    TST   OPM_DATA                                ; DF14
+    BMI   rtn_190_opm_wait2                       ; DF17
+    STAA  OPM_ADDR                                ; DF19
+    STAB  OPM_DATA                                ; DF1B
 
-lbl_DF14:
-    TST   $0025                                   ; DF14
-    BMI   lbl_DF14                                ; DF17
-    STAA  $24                                     ; DF19
-    STAB  $25                                     ; DF1B
     INC   $00,X                                   ; DF1D
 
 lbl_DF1F:
@@ -10127,7 +10140,7 @@ lbl_DF1F:
     INC   $00C6                                   ; DF20
     LDAA  $C6                                     ; DF23
     CMPA  #$08                                    ; DF25
-    BNE   lbl_DEE4                                ; DF27
+    BNE   rtn_190_chan_loop                       ; DF27
     RTS                                           ; DF29
 
 
