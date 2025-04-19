@@ -37,7 +37,7 @@
 
 // -----------------------------------------------------------------------------
 
-static const bool  MIDI_DEBUG      = true;
+static const bool  MIDI_DEBUG      = false;
 
 static SynthIO     synth_io{};
 static DX21::Synth synth{synth_io};

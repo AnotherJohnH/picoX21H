@@ -72,22 +72,22 @@ private:
          switch(i)
          {
          case 0: op = YM2151::OP_M1; break;
-         case 1: op = YM2151::OP_C1; break;
-         case 2: op = YM2151::OP_M2; break;
+         case 1: op = YM2151::OP_M2; break;
+         case 2: op = YM2151::OP_C1; break;
          case 3: op = YM2151::OP_C2; break;
          }
 
          ym2151.setOp<YM2151::EG_AR>( index_, op, voice.op[i].eg.ar);
          ym2151.setOp<YM2151::EG_D1R>(index_, op, voice.op[i].eg.d1r);
-         ym2151.setOp<YM2151::EG_D1L>(index_, op, voice.op[i].eg.d1l);
+         ym2151.setOp<YM2151::EG_D1L>(index_, op, 15 - voice.op[i].eg.d1l);
          ym2151.setOp<YM2151::EG_D2R>(index_, op, voice.op[i].eg.d2r);
          ym2151.setOp<YM2151::EG_RR>( index_, op, voice.op[i].eg.rr);
-         ym2151.setOp<YM2151::EG_TL>( index_, op, (99 - voice.op[i].out_level) * 128 / 99);
+         ym2151.setOp<YM2151::EG_TL>( index_, op, (99 - voice.op[i].out_level) * 127 / 99);
          ym2151.setOp<YM2151::MUL>(index_, op, voice.op[i].freq);
       }
 
       // Config channel
-      ym2151.setCh<YM2151::CONECT>(index_, voice.alg);
+      ym2151.setCh<YM2151::CONECT>(index_, voice.alg - 1);
       ym2151.setCh<YM2151::FB>(    index_, voice.fb);
       ym2151.setCh<YM2151::RL>(    index_, 0b11);
 

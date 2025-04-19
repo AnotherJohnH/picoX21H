@@ -45,11 +45,14 @@ static void fmtf(const char* fix, const char* format = "", ...)
 
 void Voice::Op::print(unsigned n) const
 {
+   if (n == 0)
+      fmtf("OP AR D1R D1L D2R RR  OUT FRQ", "\n");
+
    fgGreen();
-   printf("%u  ", n);
+   printf("%u  ", 4 - n);
    fgDefault();
 
-   printf("%2u  %2u  %2u  %2u  %2u  %2u  %2u",
+   printf("%2u  %2u %2u  %2u  %2u  %2u  %2u",
           eg.ar, eg.d1r, eg.d1l, eg.d2r, eg.rr, out_level, freq);
 
    printf("\n");
@@ -65,10 +68,8 @@ void Voice::print(unsigned n) const
    fmtf(" FBK", "%u", fb);
    printf("\n");
 
-   fmtf("OP AR  D1R D1L D2R RR  OUT FRQ", "\n");
-
    for(unsigned i = 0; i < NUM_OP; ++i)
    {
-      op[i].print(4 - i);
+      op[i].print(i);
    }
 }

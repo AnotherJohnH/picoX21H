@@ -43,11 +43,11 @@ enum LfoWave : uint8_t
 //! Envelope generator parameters
 struct AmpEG
 {
-   uint8_t ar{};
-   uint8_t d1r{};
-   uint8_t d2r{};
-   uint8_t rr{};
-   uint8_t d1l{};
+   uint8_t ar{};  //!< Attack rate
+   uint8_t d1r{}; //!< 1st decay rate
+   uint8_t d2r{}; //!< 2nd decay rate
+   uint8_t rr{};  //!< Release rate
+   uint8_t d1l{}; //!< 1st decay level
 };
 
 
@@ -65,9 +65,9 @@ struct Packed
    struct Op
    {
       AmpEG   eg{};
-      uint8_t ks{};
+      uint8_t ks{};                             //!< Keyboard sclaing level
       uint8_t amp_mod__eg_bias__sens__key_vel{};
-      uint8_t out_level{};
+      uint8_t out_level{};                      //!< Output level
       uint8_t freq_stuff{};
       uint8_t ksr__dt1{};
 
