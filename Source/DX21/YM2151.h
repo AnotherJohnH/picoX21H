@@ -231,7 +231,7 @@ public:
                    unsigned data_)
    {
       uint8_t data_mask = (1 << bits_) - 1;
-      uint8_t reg_mask  = ~data_mask << ls_bit_;
+      uint8_t reg_mask  = ~(data_mask << ls_bit_);
 
       uint8_t data = (shadow[addr_] & reg_mask) |
                      (data_ & data_mask) << ls_bit_;
