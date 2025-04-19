@@ -37,13 +37,23 @@ namespace YM2151 {
 enum Param
 {
    // Params
-   TEST, NFRQ, NE, CLKA, CLKB, LOAD, F_RESET, IRQ_EN, CSM, LFRQ, AMD, PMD, W, CT,
+   TEST,
+   NOISE_FRQ, NOISE_EN,
+   TIMER_A,TIMER_B,
+   TIMER_LOAD, TIMER_LOAD_A,TIMER_LOAD_B,
+   TIMER_RST, TIMER_RST_A,TIMER_RST_B,
+   TIMER_IRQ, TIMER_IRQ_A,TIMER_IRQ_B,
+   TIMER_CSM,
+   LFO_FRQ, LFO_AMD, LFO_PMD, LFO_WAVE,
+   CT, CT1, CT2,
 
    // Channel params
    CONECT, FB, RL, KC, KF, AMS, PMS,
 
    // Op params
-   MUL, DT1, TL, AR, KS, D1R, AMS_EN, D2R, DT2, RR, D1L
+   MUL, DT1, DT2,
+   EG_TL, EG_AR, EG_D1R, EG_D2R, EG_RR, EG_D1L,
+   AMS_EN, KS
 };
 
 static const uint8_t OP_M1  = 0b0001;
@@ -95,18 +105,18 @@ public:
    //! Initialize registers to stop all sounds and timer activity
    void softReset()
    {
-      set<NE>(0);     // Disable noise
+      set<NOISE_EN>(0);   // Disable noise
 
-      set<LOAD>(0);   // Stop timers
-      set<IRQ_EN>(0); // Disable interrupts
-      set<CSM>(0);    // Clear CSM
+      set<TIMER_LOAD>(0); // Stop timers
+      set<TIMER_IRQ>(0);  // Disable interrupts
+      set<TIMER_CSM>(0);  // Clear CSM
 
       for(unsigned ch = 0; ch < 8; ch++)
       {
          for(unsigned op = 0; op < 4; ch++)
          {
-            set<D1L>(ch, op, 0xF);
-            set<RR>( ch, op, 0x8);
+            set<EG_D1L>(ch, op, 0xF);
+            set<EG_RR>( ch, op, 0x8);
          }
       }
 
@@ -126,31 +136,39 @@ public:
       writeReg(0x08, ((~op_mask_) << 3) | channel_);
    }
 
+   //! Set parameter
    template <YM2151::Param PARAM>
    void set(unsigned value_)
    {
       switch(PARAM)
       {
-      case TEST:    writeReg(  0x01,       value_); break;
+      case TEST:         writeReg(  0x01,       value_); break;
 
-      case NFRQ:    writeField(0x0F, 9, 5, value_); break;
-      case NE:      writeField(0x0F, 7, 1, value_); break;
+      case NOISE_FRQ:    writeField(0x0F, 9, 5, value_); break;
+      case NOISE_EN:     writeField(0x0F, 7, 1, value_); break;
 
-      case CLKA:    writeReg(  0x10,       value_ >> 2);
-                    writeField(0x11, 0, 2, value_); break;
+      case TIMER_A:      writeReg(  0x10,       value_ >> 2);
+                         writeField(0x11, 0, 2, value_); break;
+      case TIMER_B:      writeReg(  0x12,       value_); break;
+      case TIMER_LOAD:   writeReg(  0x14, 0, 2, value_); break;
+      case TIMER_LOAD_A: writeReg(  0x14, 0, 1, value_); break;
+      case TIMER_LOAD_B: writeReg(  0x14, 1, 1, value_); break;
+      case TIMER_RST:    writeReg(  0x14, 4, 2, value_); break;
+      case TIMER_RST_A:  writeReg(  0x14, 4, 1, value_); break;
+      case TIMER_RST_B:  writeReg(  0x14, 5, 1, value_); break;
+      case TIMER_IRQ:    writeReg(  0x14, 2, 2, value_); break;
+      case TIMER_IRQ_A:  writeReg(  0x14, 2, 1, value_); break;
+      case TIMER_IRQ_B:  writeReg(  0x14, 3, 1, value_); break;
+      case TIMER_CSM:    writeReg(  0x14, 7, 1, value_); break;
 
-      case CLKB:    writeReg(  0x12,       value_); break;
+      case LFO_FRQ:      writeReg(  0x18,       value_); break;
+      case LFO_AMD:      writeReg(  0x19,       value_ & 0x7F); break;
+      case LFO_PMD:      writeReg(  0x19,       value_ | 0x80); break;
+      case LFO_WAVE:     writeField(0x1B, 0, 2, value_); break;
 
-      case LOAD:    writeReg(  0x14, 0, 2, value_); break;
-      case F_RESET: writeReg(  0x14, 4, 2, value_); break;
-      case IRQ_EN:  writeReg(  0x14, 4, 2, value_); break;
-      case CSM:     writeReg(  0x14, 7, 1, value_); break;
-
-      case LFRQ:    writeReg(  0x18,       value_); break;
-      case AMD:     writeReg(  0x19,       value_ & 0x7F); break;
-      case PMD:     writeReg(  0x19,       value_ | 0x80); break;
-      case W:       writeField(0x1B, 0, 2, value_); break;
-      case CT:      writeField(0x1B, 6, 2, value_); break;
+      case CT:           writeField(0x1B, 6, 2, value_); break;
+      case CT2:          writeField(0x1B, 7, 1, value_); break;
+      case CT1:          writeField(0x1B, 6, 1, value_); break;
 
       default: break;
       }
@@ -190,17 +208,17 @@ public:
 
       switch(PARAM)
       {
-      case MUL:    writeField(0x40 + offset, 0, 4, value_); break;
       case DT1:    writeField(0x40 + offset, 4, 3, value_); break;
-      case TL:     writeField(0x60 + offset, 0, 7, value_); break;
-      case AR:     writeField(0x80 + offset, 0, 5, value_); break;
+      case MUL:    writeField(0x40 + offset, 0, 4, value_); break;
+      case EG_TL:  writeField(0x60 + offset, 0, 7, value_); break;
       case KS:     writeField(0x80 + offset, 6, 2, value_); break;
-      case D1R:    writeField(0xA0 + offset, 0, 5, value_); break;
+      case EG_AR:  writeField(0x80 + offset, 0, 5, value_); break;
       case AMS_EN: writeField(0xA0 + offset, 7, 1, value_); break;
-      case D2R:    writeField(0xC0 + offset, 0, 5, value_); break;
+      case EG_D1R: writeField(0xA0 + offset, 0, 5, value_); break;
       case DT2:    writeField(0xC0 + offset, 6, 2, value_); break;
-      case RR:     writeField(0xE0 + offset, 0, 4, value_); break;
-      case D1L:    writeField(0xE0 + offset, 4, 4, value_); break;
+      case EG_D2R: writeField(0xC0 + offset, 0, 5, value_); break;
+      case EG_D1L: writeField(0xE0 + offset, 4, 4, value_); break;
+      case EG_RR:  writeField(0xE0 + offset, 0, 4, value_); break;
 
       default: break;
       }
@@ -340,13 +358,13 @@ private:
    MTL::Gpio::Out<1, PIN_CTRL4+3> _rd; //!< Read
 
    // MTL::Gpio::Out<1, PIN_CTRL5+4> _cs; //!< Chip select
-   bool                           _cs; //!< dummy chip select
+   bool _cs; //!< dummy chip select
 
    uint8_t shadow[256];
 
-   MTL::PioClock clock{};
-   PIO_TYPE      pio{};
-   int           sd{-1};
+   MTL::PioClock clock{};  //! Clock out to YM2151
+   PIO_TYPE      pio{};    //! PIO instance
+   int           sd{-1};   //! PIO descriptor
 };
 
 } // namespace YM2151
