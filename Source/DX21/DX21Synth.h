@@ -27,6 +27,7 @@
 
 #include "STB/MIDIInstrument.h"
 
+#include "DX21Audio.h"
 #include "YM2151.h"
 #include "SysEx.h"
 #include "Table_dx21_rom.h"
@@ -59,6 +60,8 @@ public:
 
       return ym2151_clock_hz_;
    }
+
+   Audio audio{};
 
 private:
    // MIDI::Instrument implementation
@@ -138,19 +141,35 @@ private:
    {
    }
 
+   void voicePitchBend(unsigned index_, int16_t value_) override
+   {
+   }
+
    void voiceControl(unsigned index_, uint8_t control_, uint8_t value_) override
    {
-      if (control_ == 119)
+      switch(control_)
       {
+      case 7:
+         if (index_ == 0)
+            audio.volume = value_;
+         break;
+
+      case 8:
+         if (index_ == 0)
+            audio.balance = value_;
+         break;
+
+      case 12:
+         if (index_ == 0)
+            audio.chorus = value_ >= 64;
+         break;
+
+      case 119:
          // Hack to allow program selection via CC119 for DAWs that
          // charge extra for easy MIDI program selection
          this->voiceProgram(index_, value_);
-         return;
+         break;
       }
-   }
-
-   void voicePitchBend(unsigned index_, int16_t value_) override
-   {
    }
 
    static const unsigned YM2151_CLOCK_HZ = 3579545; //!< 3.579545 MHz

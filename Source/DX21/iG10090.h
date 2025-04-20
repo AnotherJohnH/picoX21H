@@ -43,6 +43,8 @@ private:
          out = table_iG10090_sine[phase];
       }
 
+      operator int8_t() const { return out; }
+
       bool tick()
       {
          if (div-- == 0)
@@ -69,7 +71,7 @@ private:
       {
          lfo2.tick();
 
-         modulation = lfo1 * X + lfo2 * Y;
+         modulation = lfo1 * 1 + lfo2 * 1;
       }
    }
 

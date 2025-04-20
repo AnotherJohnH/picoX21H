@@ -20,50 +20,53 @@
 // SOFTWARE.
 //------------------------------------------------------------------------------
 
-// \brief Audio processing
+#pragma once
 
+#include <cstdint>
 
-#if not defined(HW_NATIVE)
+#include "BBD.h"
+#include "iG10090.h"
 
-#include "MTL/MTL.h"
-#include "MTL/Pins.h"
+namespace DX21 {
 
-#include "MTL/chip/PioYMDAC.h"
-#include "MTL/chip/PioI2S_S16.h"
-
-#include "DX21/DX21Synth.h"
-
-static MTL::PioYMDAC<MTL::Pio1>   ymdac_in{};
-static MTL::PioI2S_S16<MTL::Pio0> i2s_out{};
-
-#endif
-
-extern DX21::Synth dx21_synth;
-
-
-static void runDAC()
+class Audio
 {
-   while(true)
+public:
+   Audio() = default;
+
+   //! Simulation of DX21 audio processing
+   void process(int16_t& left, int16_t& right)
    {
-      int16_t left, right;
+      int32_t dry_l = (left * (128 - balance)) / 64;
+      int32_t dry_r = (right * balance) / 64;
 
-      ymdac_in.pop(left, right);
+      int32_t mix_l;
+      int32_t mix_r;
 
-      dx21_synth.audio.process(left, right);
+      if (chorus)
+      {
+         int32_t wet = bbd.sendRecv((dry_l + dry_r) / 2);
 
-      uint32_t packed = (left << 16) | (right & 0xFFFF);
-      i2s_out.push(packed);
+         mix_l = (dry_l + wet) / 2;
+         mix_r = (dry_r + wet) / 2;
+      }
+      else
+      {
+         mix_l = dry_l;
+         mix_r = dry_r;
+      }
+
+      // TODO LOG volume
+      left  = (mix_l * volume) / 128;
+      right = (mix_r * volume) / 128;
    }
-}
 
+   volatile uint8_t balance{64};
+   volatile uint8_t volume{127};
+   volatile bool    chorus{false};
 
-void startAudio(unsigned ym2151_clock_hz_)
-{
-   ymdac_in.download(ym2151_clock_hz_, /* CLK SD SAM1 */ MTL::PIN_10);
-   ymdac_in.start();
+   BBD</* LOG2_SIZE */ 8> bbd{};
+   iG10090                bbd_modulator{};
+};
 
-   i2s_out.download(ym2151_clock_hz_, /* SD */ MTL::PIN_31, /* LRCLK SCLK */ MTL::PIN_32);
-   i2s_out.start();
-
-   MTL_start_core(1, runDAC);
-}
+} // namespace DX21

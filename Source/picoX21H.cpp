@@ -40,20 +40,21 @@
 static const bool  MIDI_DEBUG      = false;
 
 static SynthIO     synth_io{};
-static DX21::Synth synth{synth_io};
 static hw::Led     led{};
+
+DX21::Synth dx21_synth{synth_io};
 
 
 // --- Physical MIDI -----------------------------------------------------------
 
-static hw::MidiIn  midi_in{synth, MIDI_DEBUG};
+static hw::MidiIn  midi_in{dx21_synth, MIDI_DEBUG};
 
 
 // --- USB MIDI ----------------------------------------------------------------
 
 #if defined(HW_MIDI_USB_DEVICE)
 
-static hw::MidiUSBDevice midi_usb{synth, 0x91C0, "picoX21H", MIDI_DEBUG};
+static hw::MidiUSBDevice midi_usb{dx21_synth, 0x91C0, "picoX21H", MIDI_DEBUG};
 
 extern "C" void IRQ_USBCTRL() { midi_usb.usb.irq(); }
 
@@ -97,7 +98,7 @@ int main()
    printf("Compiler : %s\n", __VERSION__);
    printf("\n");
 
-   unsigned ym2151_clock_hz = synth.start();
+   unsigned ym2151_clock_hz = dx21_synth.start();
 
    startAudio(ym2151_clock_hz);
 
@@ -109,7 +110,7 @@ int main()
       midi_usb.tick();
 #endif
 
-      led = synth.isAnyVoiceOn();
+      led = dx21_synth.isAnyVoiceOn();
    }
 
    return 0;
