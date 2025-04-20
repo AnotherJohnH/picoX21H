@@ -3150,13 +3150,13 @@ rtn_179:
     ANDA  #$03                                    ; AFED
     LDAB  #$0D                                    ; AFEF
     MUL                                           ; AFF1
-    LDX   #$1920                                  ; AFF2
+    LDX   #PATCH_BUFFER                           ; AFF2
     ABX                                           ; AFF5
     STX   $42                                     ; AFF6
     PULA                                          ; AFF8
     LDAB  #$0D                                    ; AFF9
     MUL                                           ; AFFB
-    LDX   #$1920                                  ; AFFC
+    LDX   #PATCH_BUFFER                           ; AFFC
     ABX                                           ; AFFF
     STX   $40                                     ; B000
     LDAB  #$07                                    ; B002
@@ -3397,7 +3397,7 @@ lbl_B165:
     INCB                                          ; B16F
     LDAA $1008B                                   ; B170
     MUL                                           ; B173
-    LDX   #$1920                                  ; B174
+    LDX   #PATCH_BUFFER                           ; B174
     PULB                                          ; B177
     ABX                                           ; B178
 
@@ -3578,7 +3578,7 @@ lbl_B286:
     BCS   lbl_B2A9                                ; B28E
 
 lbl_B290:
-    LDX   #$1920                                  ; B290
+    LDX   #PATCH_BUFFER                           ; B290
     ABX                                           ; B293
     PSHX                                          ; B294
     LDAA  $00,X                                   ; B295
@@ -4065,7 +4065,7 @@ lbl_B55C:
     BCS   lbl_B57B                                ; B56C
 
 lbl_B56E:
-    LDX   #$1920                                  ; B56E
+    LDX   #PATCH_BUFFER                           ; B56E
     ABX                                           ; B571
     LDAA  $00,X                                   ; B572
     DECA                                          ; B574
@@ -4495,7 +4495,7 @@ rtn_169:
 
 rtn_170:
     JSR   rtn_172                                 ; B850
-    LDX   #$1920                                  ; B853
+    LDX   #PATCH_BUFFER                           ; B853
     JMP   rtn_178                                 ; B856
 
 ;===============================================================================
@@ -4818,7 +4818,7 @@ rtn_174:
     MUL                                           ; BA87
     ADDD  #MEMORY_PATCHES                         ; BA88
     STD   $40                                     ; BA8B
-    LDX   #$1920                                  ; BA8D
+    LDX   #PATCH_BUFFER                           ; BA8D
     STX   $42                                     ; BA90
     LDAB  #$04                                    ; BA92
     STAB  $1E98                                   ; BA94
@@ -4967,7 +4967,7 @@ rtn_137:
 
 rtn_136:
     STD   $42                                     ; BB6F
-    LDX   #$1920                                  ; BB71
+    LDX   #PATCH_BUFFER                           ; BB71
 
 ;===============================================================================
 ; rtn_178 -
@@ -5142,7 +5142,7 @@ lbl_BBDE:
 ; rtn_183 -
 
 rtn_183:
-    LDX   #$1920                                  ; BC7D
+    LDX   #PATCH_BUFFER                           ; BC7D
     STX   $42                                     ; BC80
     LDX   #$1C08                                  ; BC82
     STX   $40                                     ; BC85
@@ -5157,7 +5157,7 @@ lbl_BC87:
 rtn_126:
     LDX   #$1C08                                  ; BC8C
     STX   $42                                     ; BC8F
-    LDX   #$1920                                  ; BC91
+    LDX   #PATCH_BUFFER                           ; BC91
     STX   $40                                     ; BC94
     BRA   lbl_BC87                                ; BC96
 
@@ -8223,13 +8223,13 @@ lbl_CE8D:
     LDAB  #$5D                                    ; CE8D
     MUL                                           ; CE8F
     STD   $1EF9                                   ; CE90
-    LDD   #$1920                                  ; CE93
+    LDD   #PATCH_BUFFER                           ; CE93
     ADDD  $1EF9                                   ; CE96
     XGDX                                          ; CE99
     BRA   lbl_CEB7                                ; CE9A
 
 lbl_CE9C:
-    LDX   #$1920                                  ; CE9C
+    LDX   #PATCH_BUFFER                           ; CE9C
     BRA   lbl_CEB7                                ; CE9F
 
 lbl_CEA1:
@@ -8247,7 +8247,7 @@ lbl_CEAD:
     BEQ   lbl_CE9C                                ; CEAF
 
 lbl_CEB1:
-    LDX   #$1920                                  ; CEB1
+    LDX   #PATCH_BUFFER                           ; CEB1
     LDAB  #$5D                                    ; CEB4
     ABX                                           ; CEB6
 
@@ -10792,7 +10792,7 @@ lbl_E36D:
     BRA   lbl_E3AD                                ; E37A
 
 lbl_E37C:
-    LDX   #$1920                                  ; E37C
+    LDX   #PATCH_BUFFER                           ; E37C
     ABX                                           ; E37F
     LDAA  $E2                                     ; E380
     STAA  $00,X                                   ; E382
@@ -10886,7 +10886,7 @@ lbl_E430:
     RTS                                           ; E43F
 
 lbl_E440:
-    LDX   #$1920                                  ; E440
+    LDX   #PATCH_BUFFER                           ; E440
     ABX                                           ; E443
     CMPB  #$3F                                    ; E444
     BNE   lbl_E464                                ; E446
@@ -11124,7 +11124,7 @@ lbl_E5FE:
     BNE   lbl_E61B                                ; E602
     LDAB  $E3                                     ; E604
     SUBB  #$05                                    ; E606
-    LDX   #$1920                                  ; E608
+    LDX   #PATCH_BUFFER                           ; E608
     ABX                                           ; E60B
     STAA  $00,X                                   ; E60C
     ADDA  $E5                                     ; E60E
@@ -11627,7 +11627,7 @@ rtn_124:
     LDAA  #$5D                                    ; E8F9
     JSR   rtn_34                                  ; E8FB
     CLR   $00E4                                   ; E8FE
-    LDX   #$1920                                  ; E901
+    LDX   #PATCH_BUFFER                           ; E901
 
 lbl_E904:
     LDAA  $00,X                                   ; E904
@@ -13230,7 +13230,7 @@ lbl_F23E:
     INX                                           ; F248
     INX                                           ; F249
     STX   $40                                     ; F24A
-    LDX   #$1920                                  ; F24C
+    LDX   #PATCH_BUFFER                           ; F24C
     LDAA  #$2F                                    ; F24F
     BSR   rtn_54                                  ; F251
     LDAA  #$15                                    ; F253
@@ -13584,7 +13584,7 @@ rtn_53:
     ANDB  #$03                                    ; F4D2
     LDAA  #$0D                                    ; F4D4
     MUL                                           ; F4D6
-    LDX   #$1920                                  ; F4D7
+    LDX   #PATCH_BUFFER                           ; F4D7
     ABX                                           ; F4DA
     RTS                                           ; F4DB
 
@@ -13925,7 +13925,7 @@ lbl_F86C:
     LDX   #$F882                                  ; F872
     ABX                                           ; F875
     LDAB  $00,X                                   ; F876
-    LDX   #$1920                                  ; F878
+    LDX   #PATCH_BUFFER                           ; F878
     ABX                                           ; F87B
     TBA                                           ; F87C
     LDAB  $00,X                                   ; F87D
