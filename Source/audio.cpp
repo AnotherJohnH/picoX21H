@@ -22,7 +22,6 @@
 
 // \brief Audio processing
 
-
 #if not defined(HW_NATIVE)
 
 #include "MTL/MTL.h"
@@ -31,12 +30,10 @@
 #include "MTL/chip/PioYMDAC.h"
 #include "MTL/chip/PioI2S_S16.h"
 
-#include "DX21/DX21Synth.h"
-
 static MTL::PioYMDAC<MTL::Pio1>   ymdac_in{};
 static MTL::PioI2S_S16<MTL::Pio0> i2s_out{};
 
-#endif
+#include "DX21/DX21Synth.h"
 
 extern DX21::Synth dx21_synth;
 
@@ -56,7 +53,6 @@ static void runDAC()
    }
 }
 
-
 void startAudio(unsigned ym2151_clock_hz_)
 {
    ymdac_in.download(ym2151_clock_hz_, /* CLK SD SAM1 */ MTL::PIN_10);
@@ -67,3 +63,6 @@ void startAudio(unsigned ym2151_clock_hz_)
 
    MTL_start_core(1, runDAC);
 }
+
+#endif
+

@@ -33,6 +33,18 @@ class iG10090
 public:
    iG10090() = default;
 
+   int32_t tick()
+   {
+      if (lfo1.tick())
+      {
+         lfo2.tick();
+
+         modulation = lfo1 * 4 + lfo2 * 4;
+      }
+
+      return modulation;
+   }
+
 private:
    template <unsigned DIV>
    class Lfo
@@ -65,18 +77,8 @@ private:
       int8_t  out;
    };
 
-   void lfo()
-   {
-      if (lfo1.tick())
-      {
-         lfo2.tick();
-
-         modulation = lfo1 * 1 + lfo2 * 1;
-      }
-   }
-
    Lfo</* DIV */ 19> lfo1{};
    Lfo</* DIV */ 16> lfo2{};
 
-   int32_t  modulation;
+   int32_t modulation;
 };

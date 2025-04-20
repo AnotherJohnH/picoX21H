@@ -32,8 +32,10 @@ class BBD
 public:
    BBD() = default;
 
-   void setRate(unsigned rate)
+   void setMod(signed mod_)
    {
+      delta_in  = PHASE_MAX + mod_;
+      delta_out = PHASE_MAX + mod_;
    }
 
    //! Send input to BBD and retrieve output
@@ -67,14 +69,14 @@ private:
    public:
       void push(int32_t sample_)
       {
-         buffer[index++] = sample_;
+         buffer[index] = sample_;
          index = (index + 1) & MASK;
       }
 
       int32_t pushPop(int32_t sample_)
       {
          int32_t out = buffer[index];
-         buffer[index++] = sample_;
+         buffer[index] = sample_;
          index = (index + 1) & MASK;
          return out;
       }
@@ -85,12 +87,12 @@ private:
 
          offset_ = offset_ >> (PHASE_BITS - LOG2_TABLE_BBD_FILTER_HALF_SIZE);
 
-         int32_t total;
+         int32_t total = 0;
 
          for(unsigned i = 0; i < 2; ++i)
          {
             total   += buffer[(index + i) & MASK] * table_bbd_filter[offset_];
-            offset_ += LOG2_TABLE_BBD_FILTER_HALF_SIZE;
+            offset_ += 1 << LOG2_TABLE_BBD_FILTER_HALF_SIZE;
          }
 
          return total >> 16;

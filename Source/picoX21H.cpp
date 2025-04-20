@@ -25,9 +25,7 @@
 #include <cstdio>
 
 #if not defined(HW_NATIVE)
-
 #include "MTL/MTL.h"
-
 #endif
 
 #include "DX21/DX21Synth.h"
@@ -98,9 +96,11 @@ int main()
    printf("Compiler : %s\n", __VERSION__);
    printf("\n");
 
+#if not defined(HW_NATIVE)
    unsigned ym2151_clock_hz = dx21_synth.start();
 
    startAudio(ym2151_clock_hz);
+#endif
 
    while(true)
    {

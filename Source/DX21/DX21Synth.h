@@ -28,7 +28,13 @@
 #include "STB/MIDIInstrument.h"
 
 #include "DX21Audio.h"
-#include "YM2151.h"
+
+#if defined(HW_NATIVE)
+#include "YM2151_Model.h"
+#else
+#include "YM2151_Interface.h"
+#endif
+
 #include "SysEx.h"
 #include "Table_dx21_rom.h"
 #include "../SynthIO.h"
@@ -69,6 +75,7 @@ private:
    {
       SysEx::Voice voice{table_dx21_rom, number_};
 
+      // Config channel ops
       for(unsigned i = 0; i < SysEx::NUM_OP; ++i)
       {
          uint8_t op;
@@ -100,6 +107,7 @@ private:
       ym2151.setCh<YM2151::AMS>(   index_, 0);
       ym2151.setCh<YM2151::PMS>(   index_, 0);
 
+      // Config Synth
       if (index_ == 0)
       {
          // Debug console output
@@ -177,11 +185,15 @@ private:
 
    SynthIO& io;
 
+#if defined(HW_NATIVE)
+   YM2151::Model ym2151{};
+#else
    YM2151::Interface<MTL::Pio0,
                      /* CTRL4    */ MTL::PIN_4,
                      /* CLK_M    */ MTL::PIN_9,
                      /* DATA8    */ MTL::PIN_14,
                      /* REV_DATA */ true> ym2151{};
+#endif
 };
 
 } // namespace DX21

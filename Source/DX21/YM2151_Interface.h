@@ -113,10 +113,10 @@ public:
 
       for(unsigned ch = 0; ch < 8; ch++)
       {
-         for(unsigned op = 0; op < 4; ch++)
+         for(unsigned op = 0; op < 4; op++)
          {
-            set<EG_D1L>(ch, op, 0xF);
-            set<EG_RR>( ch, op, 0x8);
+            setOp<EG_D1L>(ch, op, 0xF);
+            setOp<EG_RR>( ch, op, 0x8);
          }
       }
 
@@ -150,16 +150,16 @@ public:
       case TIMER_A:      writeReg(  0x10,       value_ >> 2);
                          writeField(0x11, 0, 2, value_); break;
       case TIMER_B:      writeReg(  0x12,       value_); break;
-      case TIMER_LOAD:   writeReg(  0x14, 0, 2, value_); break;
-      case TIMER_LOAD_A: writeReg(  0x14, 0, 1, value_); break;
-      case TIMER_LOAD_B: writeReg(  0x14, 1, 1, value_); break;
-      case TIMER_RST:    writeReg(  0x14, 4, 2, value_); break;
-      case TIMER_RST_A:  writeReg(  0x14, 4, 1, value_); break;
-      case TIMER_RST_B:  writeReg(  0x14, 5, 1, value_); break;
-      case TIMER_IRQ:    writeReg(  0x14, 2, 2, value_); break;
-      case TIMER_IRQ_A:  writeReg(  0x14, 2, 1, value_); break;
-      case TIMER_IRQ_B:  writeReg(  0x14, 3, 1, value_); break;
-      case TIMER_CSM:    writeReg(  0x14, 7, 1, value_); break;
+      case TIMER_LOAD:   writeField(0x14, 0, 2, value_); break;
+      case TIMER_LOAD_A: writeField(0x14, 0, 1, value_); break;
+      case TIMER_LOAD_B: writeField(0x14, 1, 1, value_); break;
+      case TIMER_RST:    writeField(0x14, 4, 2, value_); break;
+      case TIMER_RST_A:  writeField(0x14, 4, 1, value_); break;
+      case TIMER_RST_B:  writeField(0x14, 5, 1, value_); break;
+      case TIMER_IRQ:    writeField(0x14, 2, 2, value_); break;
+      case TIMER_IRQ_A:  writeField(0x14, 2, 1, value_); break;
+      case TIMER_IRQ_B:  writeField(0x14, 3, 1, value_); break;
+      case TIMER_CSM:    writeField(0x14, 7, 1, value_); break;
 
       case LFO_FRQ:      writeReg(  0x18,       value_); break;
       case LFO_AMD:      writeReg(  0x19,       value_ & 0x7F); break;
