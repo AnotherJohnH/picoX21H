@@ -19,6 +19,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 //------------------------------------------------------------------------------
+//
+// \brief Simulation of a Bucket Brigade Delay 
 
 #pragma once
 
@@ -26,7 +28,7 @@
 
 #include "Table_bbd_filter.h"
 
-template <unsigned LOG2_LENGTH>
+template <unsigned LOG2_BUCKETS, typename TYPE = int32_t>
 class BBD
 {
 public:
@@ -39,7 +41,7 @@ public:
    }
 
    //! Send input to BBD and retrieve output
-   int32_t sendRecv(int32_t in_)
+   TYPE sendRecv(TYPE in_)
    {
       bbd_in.push(in_);
 
@@ -48,8 +50,8 @@ public:
       {
          phase_in -= PHASE_MAX;
 
-         int32_t input  = bbd_in.filter(phase_in);
-         int32_t output = buckets.pushPop(input);
+         TYPE input  = bbd_in.filter(phase_in);
+         TYPE output = buckets.pushPop(input);
          bbd_out.push(output);
       }
 
@@ -67,27 +69,27 @@ private:
    class Buffer
    {
    public:
-      void push(int32_t sample_)
+      void push(TYPE sample_)
       {
          buffer[index] = sample_;
          index = (index + 1) & MASK;
       }
 
-      int32_t pushPop(int32_t sample_)
+      TYPE pushPop(TYPE sample_)
       {
-         int32_t out = buffer[index];
+         TYPE out = buffer[index];
          buffer[index] = sample_;
          index = (index + 1) & MASK;
          return out;
       }
 
-      int32_t filter(unsigned offset_)
+      TYPE filter(unsigned offset_)
       {
          static constexpr unsigned LOG2_TABLE_BBD_FILTER_HALF_SIZE = LOG2_TABLE_BBD_FILTER_SIZE - 1;
 
          offset_ = offset_ >> (PHASE_BITS - LOG2_TABLE_BBD_FILTER_HALF_SIZE);
 
-         int32_t total = 0;
+         TYPE total = 0;
 
          for(unsigned i = 0; i < 2; ++i)
          {
@@ -102,7 +104,7 @@ private:
       static const unsigned SIZE = 1 << LOG2_SIZE;
       static const unsigned MASK = SIZE - 1;
 
-      int32_t  buffer[SIZE] = {};
+      TYPE  buffer[SIZE] = {};
       unsigned index{0};
    };
 
@@ -110,11 +112,11 @@ private:
    static const unsigned PHASE_MAX  = 1 << PHASE_BITS;
    static const unsigned PHASE_MASK = PHASE_MAX - 1;
 
-   unsigned            phase_in{0};
-   unsigned            delta_in{PHASE_MAX};
-   unsigned            phase_out{0};
-   unsigned            delta_out{PHASE_MAX};
-   Buffer<2>           bbd_in{};
-   Buffer<LOG2_LENGTH> buckets{};
-   Buffer<2>           bbd_out{};
+   unsigned             phase_in{0};
+   unsigned             delta_in{PHASE_MAX};
+   unsigned             phase_out{0};
+   unsigned             delta_out{PHASE_MAX};
+   Buffer<2>            bbd_in{};
+   Buffer<LOG2_BUCKETS> buckets{};
+   Buffer<2>            bbd_out{};
 };
