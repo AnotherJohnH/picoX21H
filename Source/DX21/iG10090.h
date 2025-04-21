@@ -31,15 +31,47 @@
 class iG10090
 {
 public:
-   iG10090() = default;
-
-   int32_t tick()
+   iG10090(unsigned clock_hz_,
+           unsigned chorus_level_,
+           unsigned tremolo_level_)
+      : clock_hz(clock_hz_)
+      , chorus_level(chorus_level_)
+      , tremolo_level(tremolo_level_)
    {
-      if (lfo1.tick())
-      {
-         lfo2.tick();
+      enableTremolo(true);
+      enableChorus(true);
+   }
 
-         modulation = lfo1 * 4 + lfo2 * 4;
+   void enableTremolo(bool enable_)
+   {
+      tremolo = enable_ ? tremolo_level : 0;
+   }
+
+   void enableChorus(bool enable_)
+   {
+      chorus = enable_ ? chorus_level : 0;
+   }
+
+   //! Set rate sample() will be called
+   void setSampleRate(unsigned sample_rate_hz_)
+   {
+      delta = PHASE_MAX * clock_hz / sample_rate_hz_;
+   }
+
+   //! Get next modulation sample
+   int32_t sample()
+   {
+      phase += delta;
+      if (phase >= PHASE_MAX)
+      {
+         phase -= PHASE_MAX;
+
+         if (lfo1.tick())
+         {
+            lfo2.tick();
+
+            modulation = lfo1 * tremolo + lfo2 * chorus;
+         }
       }
 
       return modulation;
@@ -77,8 +109,18 @@ private:
       int8_t  out;
    };
 
+   static const unsigned PHASE_MAX = 0x10000;
+
+   unsigned clock_hz;
+   unsigned chorus_level;
+   unsigned tremolo_level;
+
+   unsigned chorus{0};
+   unsigned tremolo{0};
+   unsigned phase{0};
+   unsigned delta{0};
+
    Lfo</* DIV */ 19> lfo1{};
    Lfo</* DIV */ 16> lfo2{};
-
-   int32_t modulation;
+   int32_t           modulation{0};
 };

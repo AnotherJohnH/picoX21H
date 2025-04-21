@@ -64,6 +64,10 @@ public:
          voiceProgram(i, 0);
       }
 
+      unsigned sample_rate = ym2151_clock_hz_ / (/* divider */ 2 * /* bits */ 16 * /* chans */ 2);
+
+      audio.setSampleRate(sample_rate);
+
       return ym2151_clock_hz_;
    }
 
