@@ -23,9 +23,11 @@
 if(${PLT_NATIVE})
 
    add_executable(test_DX21
-                  testMain.cpp
-                  testBBD.cpp
-                  testig10090.cpp)
+      testMain.cpp
+      testBBD.cpp
+      testig10090.cpp
+      testIIRFilter.cpp
+       )
 
    target_link_libraries(test_DX21
       PRIVATE DX21 STB)
