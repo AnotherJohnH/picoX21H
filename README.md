@@ -19,11 +19,13 @@ Working...
    + PIO-based YM3012 (DAC) interface
    + Captured YM3012 format samples translated to I2S (currently driving a Pimoroni Pico Audio module)
    + 16x2 LCD display
+   + Working (but currently noisy) chorus on the Pico's 2nd core (set MIDI CC12 >= 64)
 
 To do...
    + Verify that the YM2151 can accurately replicate the sound of the YM2164, the similar but different chip used in the DX21
    + Complete the implementation of YM2151 register control from all patch parameters
-   + Implement a chorus, and maybe even reverb on the Pico's second core as the audio passes through to the I2S DAC
+   + Tune and de-noise chorus
+   + Try adding a basic reverb on the audio path
 
 ## Hardware
 
