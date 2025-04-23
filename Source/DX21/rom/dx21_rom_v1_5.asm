@@ -48,6 +48,8 @@ TMP_PTR2:      EQU  $42
 SRC_PTR:       EQU  $4B
 DST_PTR:       EQU  $4D
 
+OCI_EXEC:      EQU  $BB
+
 ;-------------------------------------------------------------------------------
 ; Main memory variables
 
@@ -4630,7 +4632,7 @@ rtn_84:
     SUBB  #$05                                    ; B944
     JSR   switch                                  ; B946
     BYTE  $2B, $02                                ; B949  case 0x02: goto lbl_B974
-    BYTE  $32, $04                                ; B94B  case 0x04: goto lbl_B97D
+    BYTE  $32, $04                                ; B94B  case 0x04: goto rtn_84_LFO_wave
     BYTE  $3F, $05                                ; B94D  case 0x05: goto lbl_B98C
     BYTE  $43, $06                                ; B94F  case 0x06: goto lbl_B992
     BYTE  $47, $07                                ; B951  case 0x07: goto lbl_B998
@@ -4659,8 +4661,8 @@ lbl_B974:
     JSR   rtn_57                                  ; B977
     JMP   lbl_B9E0                                ; B97A
 
-lbl_B97D:
-    JSR   rtn_58                                  ; B97D
+rtn_84_LFO_wave:
+    JSR   set_LFO_wave                            ; B97D
     LDX   #$CF5F                                  ; B980
     JMP   rtn_57                                  ; B983
 
@@ -4682,7 +4684,7 @@ lbl_B998:
 lbl_B99B:
     LDX   #$D15B                                  ; B99B
     JSR   rtn_57                                  ; B99E
-    JMP   lbl_B97D                                ; B9A1
+    JMP   rtn_84_LFO_wave                         ; B9A1
 
 lbl_B9A4:
     LDX   #$D12D                                  ; B9A4
@@ -8005,7 +8007,7 @@ rtn_8:
     JSR   rtn_56                                  ; CD03
     LDX   #$D15B                                  ; CD06
     JSR   rtn_57                                  ; CD09
-    JSR   rtn_58                                  ; CD0C
+    JSR   set_LFO_wave                            ; CD0C
     LDX   #$CF5F                                  ; CD0F
     JSR   rtn_57                                  ; CD12
     LDX   #$D085                                  ; CD15
@@ -8272,9 +8274,9 @@ dat_CEB8:
     BYTE  $43, $86, $1F, $97, $24, $0E, $39       ; C...$.9
 
 ;===============================================================================
-; rtn_58 - Write CT1, CT2 and LFO.W = *0x195B
+; set_LFO_wave - Write CT1, CT2 and LFO.W = *0x195B
 
-rtn_58:
+set_LFO_wave:
     LDAA  $195B                                   ; CF2F
     LDAB  #$1B                                    ; CF32
     SEI                                           ; CF34
@@ -8594,6 +8596,8 @@ lbl_D4D9:
 
 lbl_D4F1:
     LSRA                                          ; D4F1
+
+; OPM: EG total level
     LDAB  #$60                                    ; D4F2
     ADDB  $9F                                     ; D4F4
     SEI                                           ; D4F6
@@ -8953,14 +8957,16 @@ jump_table:
 ; rtn_197 -
 
 rtn_197:
+; *0xAC = (dat_D79C[(*0x88) >> 1] << 1) | 0x80
     LDAB  $88                                     ; D6C8
     LSRB                                          ; D6CA
-    LDX   #$D79C                                  ; D6CB
+    LDX   #dat_D79C                               ; D6CB
     ABX                                           ; D6CE
     LDAA  $00,X                                   ; D6CF
     ASLA                                          ; D6D1
     EORA  #$80                                    ; D6D2
     STAA  $AC                                     ; D6D4
+
     LDAB  #$07                                    ; D6D6
     STAB  $B3                                     ; D6D8
 
@@ -9439,7 +9445,7 @@ lbl_D9C3:
     STAA  $00,X                                   ; D9C3
     COMA                                          ; D9C5
     TAB                                           ; D9C6
-    LDX   #$DAF2                                  ; D9C7
+    LDX   #dat_DAF2                               ; D9C7
     ABX                                           ; D9CA
     LDAA  $00,X                                   ; D9CB
     LDX   #$23E7                                  ; D9CD
@@ -9447,7 +9453,7 @@ lbl_D9C3:
     ABX                                           ; D9D2
     LDAB  $00,X                                   ; D9D3
     COMB                                          ; D9D5
-    LDX   #$DAF2                                  ; D9D6
+    LDX   #dat_DAF2                               ; D9D6
     ABX                                           ; D9D9
     TAB                                           ; D9DA
     CLRA                                          ; D9DB
@@ -9573,7 +9579,7 @@ lbl_DA84:
 
 lbl_DA94:
     COMA                                          ; DA94
-    LDX   #$DAF2                                  ; DA95
+    LDX   #dat_DAF2                               ; DA95
     TAB                                           ; DA98
     ABX                                           ; DA99
     LDAA  $00,X                                   ; DA9A
@@ -9584,6 +9590,8 @@ lbl_DA94:
     LDX   #$2437                                  ; DAA4
     LDAB  $B7                                     ; DAA7
     ABX                                           ; DAA9
+
+; OPM: EG total level
     ADDB  #$60                                    ; DAAA
     PSHA                                          ; DAAC
     ADDA  $00,X                                   ; DAAD
@@ -9624,6 +9632,7 @@ lbl_DAD8:
     BCC   lbl_DAE7                                ; DAE3
     LDAA  #$FF                                    ; DAE5
 
+; OPM: PMD/AMD
 lbl_DAE7:
     SUBA  $2417                                   ; DAE7
     LSRA                                          ; DAEA
@@ -9671,13 +9680,14 @@ dat_DAF2:
     BYTE  $01, $01, $01, $01, $01, $00, $00, $00  ; ........
 
 ;===============================================================================
-; rtn_195 -
+; set_pitch_modulation_depth -
 
-rtn_195:
+set_pitch_modulation_depth:
     LDAA  $1F8B                                   ; DC12
     LDAB  $89                                     ; DC15
     MUL                                           ; DC17
     STAA  $BA                                     ; DC18
+
     LDAA  $1F8D                                   ; DC1A
     LDAB  $8A                                     ; DC1D
     COMB                                          ; DC1F
@@ -9720,6 +9730,7 @@ lbl_DC4B:
     BCC   lbl_DC52                                ; DC4E
     LDAA  #$FF                                    ; DC50
 
+; Set Pitch Modulation Depth in OPM
 lbl_DC52:
     LSRA                                          ; DC52
     ORAA  #$80                                    ; DC53
@@ -9901,8 +9912,8 @@ lbl_DDDD:
 ; rtn_198 -
 
 rtn_198:
-    CLR   $00B3                                   ; DDDE
 
+    CLR   $00B3                                   ; DDDE
 lbl_DDE1:
     LDAB  $B3                                     ; DDE1
     ASLB                                          ; DDE3
@@ -9938,6 +9949,7 @@ lbl_DE14:
     STD   $00,X                                   ; DE14
 
 lbl_DE16:
+
     INC   $00B3                                   ; DE16
     LDAA  $B3                                     ; DE19
     CMPA  #$08                                    ; DE1B
@@ -10157,41 +10169,43 @@ handler_OCI:
     STX   $0B                                     ; DF38
     STAA  $3800                                   ; DF3A
     BSR   rtn_190                                 ; DF3D
-    LDAB  $BB                                     ; DF3F
-    JSR   switch                                  ; DF41
-    BYTE  $0A, $01                                ; DF44  case 0x01: goto lbl_DF4E
-    BYTE  $20, $02                                ; DF46  case 0x02: goto lbl_DF66
-    BYTE  $06, $03                                ; DF48  case 0x03: goto lbl_DF4E
-    BYTE  $2B, $04                                ; DF4A  case 0x04: goto lbl_DF75
-    BYTE  $29, $00                                ; DF4C  case 0x00: goto lbl_DF75
 
-lbl_DF4E:
-    INC   $00BB                                   ; DF4E
+; switch(OCI_EXEC)
+    LDAB  OCI_EXEC                                ; DF3F
+    JSR   switch                                  ; DF41
+    BYTE  $0A, $01                                ; DF44  case 0x01: goto handler_OCI_exec_A
+    BYTE  $20, $02                                ; DF46  case 0x02: goto handler_OCI_exec_B 
+    BYTE  $06, $03                                ; DF48  case 0x03: goto handler_OCI_exec_B
+    BYTE  $2B, $04                                ; DF4A  case 0x04: goto handler_OCI_exec_C
+    BYTE  $29, $00                                ; DF4C  case 0x00: goto handler_OCI_exec_C
+
+handler_OCI_exec_A:
+    INC   OCI_EXEC                                ; DF4E
     STAA  $2A                                     ; DF51
-    JSR   rtn_195                                 ; DF53
+    JSR   set_pitch_modulation_depth              ; DF53
     JSR   rtn_196                                 ; DF56
     JSR   rtn_197                                 ; DF59
     JSR   rtn_198                                 ; DF5C
     JSR   rtn_199                                 ; DF5F
     STAA  $2A                                     ; DF62
-    BRA   lbl_DF82                                ; DF64
+    BRA   handler_OCI_end_switch                  ; DF64
 
-lbl_DF66:
-    INC   $00BB                                   ; DF66
+handler_OCI_exec_B:
+    INC   OCI_EXEC                                ; DF66
     STAA  $2C                                     ; DF69
     JSR   rtn_201                                 ; DF6B
     JSR   rtn_192                                 ; DF6E
     STAA  $2C                                     ; DF71
-    BRA   lbl_DF82                                ; DF73
+    BRA   handler_OCI_end_switch                  ; DF73
 
-lbl_DF75:
-    CLR   $00BB                                   ; DF75
+handler_OCI_exec_C:
+    CLR   OCI_EXEC                                ; DF75
     STAA  $2E                                     ; DF78
     JSR   rtn_191                                 ; DF7A
     JSR   rtn_192                                 ; DF7D
     STAA  $2E                                     ; DF80
 
-lbl_DF82:
+handler_OCI_end_switch:
     STAA  $2800                                   ; DF82
     JSR   rtn_193                                 ; DF85
     STAA  $2800                                   ; DF88
