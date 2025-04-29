@@ -136,6 +136,8 @@ private:
    {
       static const unsigned table[12] = {0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14};
 
+      midi_note_ -= 1;
+
       unsigned octave = midi_note_ / 12;
       unsigned note   = table[midi_note_ % 12];
 
