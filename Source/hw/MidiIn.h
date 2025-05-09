@@ -43,7 +43,7 @@ namespace hw {
 class MidiIn : public MIDI::Interface
 {
 public:
-   MidiIn(MIDI::InstrumentBase& instrument_, bool debug_)
+   MidiIn(MIDI::Instrument& instrument_, bool debug_)
       : MIDI::Interface(instrument_, debug_)
    {}
 
