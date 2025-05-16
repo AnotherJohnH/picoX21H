@@ -4,7 +4,7 @@ TARGETS = dx21_rom_v1_5.bin \
 
 all: $(TARGETS)
 
-%.bin: %.asm
+%.bin: %.asm_
 	dasm $? -f3 -o$@
 
 clean:
