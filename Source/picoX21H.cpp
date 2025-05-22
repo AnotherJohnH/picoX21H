@@ -54,7 +54,7 @@ static hw::MidiIn  midi_in{dx21_synth, MIDI_DEBUG};
 
 static hw::MidiUSBDevice midi_usb{dx21_synth, 0x91C0, "picoX21H", MIDI_DEBUG};
 
-extern "C" void IRQ_USBCTRL() { midi_usb.usb.irq(); }
+extern "C" void IRQ_USBCTRL() { midi_usb.irq(); }
 
 #endif
 
