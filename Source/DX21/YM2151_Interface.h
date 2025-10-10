@@ -75,8 +75,7 @@ public:
 
    signed download(unsigned clock_freq_)
    {
-      sd = clock.download(pio, clock_freq_, PIN_CLK_M);
-      return sd;
+      return clock.download(clock_freq_, PIN_CLK_M);
    }
 
    void start()
@@ -362,9 +361,9 @@ private:
 
    uint8_t shadow[256];
 
-   MTL::PioClock clock{};  //! Clock out to YM2151
-   PIO_TYPE      pio{};    //! PIO instance
-   int           sd{-1};   //! PIO descriptor
+   MTL::PioClock<PIO_TYPE> clock{};  //!< Clock out to YM2151
+   PIO_TYPE                pio{};    //!< PIO instance
+   int                     sd{-1};   //!< PIO descriptor
 };
 
 } // namespace YM2151
