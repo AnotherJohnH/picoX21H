@@ -7,37 +7,39 @@
 
 #include <cstdio>
 
-#if not defined(HW_NATIVE)
-#include "MTL/MTL.h"
-#endif
-
-#include "DX21/DX21Synth.h"
 #include "hw/hw.h"
 
+#include "Dac.h"
+#include "DX21/DX21Synth.h"
 #include "SynthIO.h"
+#include "FilePortal.h"
 
 // -----------------------------------------------------------------------------
 
-static const bool  MIDI_DEBUG      = false;
+static const bool MIDI_DEBUG = false;
 
+static FilePortal  file_portal{"picoX21H"};
 static SynthIO     synth_io{};
-static hw::Led     led{};
+static DX21::Synth dx21_synth{synth_io};
 
-DX21::Synth dx21_synth{synth_io};
+
+// --- Audio out DAC -----------------------------------------------------------
+
+static chip::DacImpl<hw::Dac> dac{62500};
 
 
 // --- Physical MIDI -----------------------------------------------------------
 
-static hw::MidiIn  midi_in{dx21_synth, MIDI_DEBUG};
+static hw::PhysMidi phys_midi{};
 
 
 // --- USB MIDI ----------------------------------------------------------------
 
-#if defined(HW_MIDI_USB_DEVICE)
+#if defined(HW_USB_DEVICE)
 
-static hw::MidiUSBDevice midi_usb{dx21_synth, 0x91C0, "picoX21H", MIDI_DEBUG};
+static hw::USBDevice usb{0x91C0, "picoX21H", file_portal};
 
-extern "C" void IRQ_USBCTRL() { midi_usb.irq(); }
+extern "C" void IRQ_USBCTRL() { usb.irq(); }
 
 #endif
 
@@ -59,9 +61,42 @@ void SynthIO::displayLCD(unsigned row, const char* text)
 }
 
 
+// --- LED ---------------------------------------------------------------------
+
+static hw::Led led{};
+
+
 // -----------------------------------------------------------------------------
 
-extern void startAudio(unsigned);
+#if not defined(HW_NATIVE)
+static void runDAC()
+{
+   while(true)
+   {
+      Sample mix;
+
+      dx21_synth.ym2151.mixOut(mix);
+      dx21_synth.audio.process(mix);
+
+      dac.push(mix);
+   }
+}
+#endif
+
+void startAudio()
+{
+   unsigned clock_hz       = 3579545;
+   unsigned sample_rate_hz = clock_hz / 64;
+
+   dx21_synth.start(clock_hz);
+   dac.setSampleRate(sample_rate_hz);
+
+#if not defined(HW_NATIVE)
+   MTL_start_core(1, runDAC);
+#endif
+}
+
+// --- Entry point -------------------------------------------------------------
 
 int main()
 {
@@ -70,27 +105,25 @@ int main()
    printf("\e[1,1H");
 
    printf("\n");
-   printf("Program  : picoX21-H (%s)\n", HW_DESCR);
-   printf("Author   : Copyright (c) 2025 John D. Haughton\n");
-   printf("License  : MIT\n");
-   printf("Version  : %s\n", PLT_VERSION);
-   printf("Commit   : %s\n", PLT_COMMIT);
-   printf("Built    : %s %s\n", __TIME__, __DATE__);
-   printf("Compiler : %s\n", __VERSION__);
-   printf("\n");
 
-#if not defined(HW_NATIVE)
-   unsigned ym2151_clock_hz = dx21_synth.start();
+   puts(file_portal.genREADME());
 
-   startAudio(ym2151_clock_hz);
+   startAudio();
+
+#if defined(HW_USB_DEVICE)
+   usb.setDebug(MIDI_DEBUG);
+   usb.attachInstrument(1, dx21_synth);
 #endif
+
+   phys_midi.setDebug(MIDI_DEBUG);
+   phys_midi.attachInstrument(1, dx21_synth);
 
    while(true)
    {
-      midi_in.tick();
+      phys_midi.tick();
 
-#if defined(HW_MIDI_USB_DEVICE)
-      midi_usb.tick();
+#if defined(HW_USB_DEVICE)
+      usb.tick();
 #endif
 
       led = dx21_synth.isAnyVoiceOn();
@@ -98,4 +131,3 @@ int main()
 
    return 0;
 }
-

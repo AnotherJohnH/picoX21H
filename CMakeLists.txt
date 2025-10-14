@@ -7,7 +7,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(picoX21H
         LANGUAGES CXX C ASM
-        VERSION 0.02)
+        VERSION 0.03)
 
 include(CTest)
 

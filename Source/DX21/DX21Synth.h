@@ -11,12 +11,7 @@
 #include "STB/MIDIInstrument.h"
 
 #include "DX21Audio.h"
-
-#if defined(HW_NATIVE)
-#include "YM2151_Model.h"
-#else
-#include "YM2151_Interface.h"
-#endif
+#include "hw/YM2151.h"
 
 #include "SysEx.h"
 #include "Table_dx21_rom.h"
@@ -33,29 +28,24 @@ public:
    {
    }
 
-   unsigned start(unsigned ym2151_clock_hz_ = YM2151_CLOCK_HZ)
+   void start(unsigned ym2151_clock_hz_ = YM2151_CLOCK_HZ)
    {
-      ym2151.download(ym2151_clock_hz_);
-      ym2151.start();
-
       io.displayLCD(0, "*   picoX21H   *");
       io.displayLCD(1, "*  SYNTHESIZER *");
 
       usleep(1000000);
 
+      ym2151.start(ym2151_clock_hz_);
+      ym2151.setClock(ym2151_clock_hz_);
+
       for(unsigned i = 0; i < num_voices; ++i)
       {
          voiceProgram(i, 0);
       }
-
-      unsigned sample_rate = ym2151_clock_hz_ / (/* divider */ 2 * /* bits */ 16 * /* chans */ 2);
-
-      audio.setSampleRate(sample_rate);
-
-      return ym2151_clock_hz_;
    }
 
-   Audio audio{};
+   hw::YM2151 ym2151;
+   Audio      audio{};
 
 private:
    // MIDI::Instrument implementation
@@ -118,21 +108,12 @@ private:
 
    void voiceOn(unsigned index_, uint8_t midi_note_, uint8_t velocity_) override
    {
-      static const unsigned table[12] = {0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14};
-
-      midi_note_ -= 1;
-
-      unsigned octave = midi_note_ / 12;
-      unsigned note   = table[midi_note_ % 12];
-
-      ym2151.setCh<YM2151::KC>(index_, (octave << 4) | note);
-
-      ym2151.noteOn(index_);
+      ym2151.voiceOn(index_, midi_note_, velocity_);
    }
 
    void voiceOff(unsigned index_, uint8_t velocity_) override
    {
-      ym2151.noteOff(index_);
+      ym2151.voiceOff(index_, velocity_);
    }
 
    void voicePressure(unsigned index_, uint8_t level_) override
@@ -173,17 +154,7 @@ private:
    static const unsigned YM2151_CLOCK_HZ = 3579545; //!< 3.579545 MHz
    static const uint8_t  ID_YAMAHA       = 67;
 
-   SynthIO& io;
-
-#if defined(HW_NATIVE)
-   YM2151::Model ym2151{};
-#else
-   YM2151::Interface<MTL::Pio0,
-                     /* CTRL4    */ MTL::PIN_4,
-                     /* CLK_M    */ MTL::PIN_9,
-                     /* DATA8    */ MTL::PIN_14,
-                     /* REV_DATA */ true> ym2151{};
-#endif
+   SynthIO&   io;
 };
 
 } // namespace DX21

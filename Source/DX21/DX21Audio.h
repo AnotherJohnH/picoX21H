@@ -23,10 +23,10 @@ public:
    }
 
    //! Simulation of DX21 audio processing
-   void process(int16_t& left, int16_t& right)
+   void process(Sample& mix)
    {
-      int32_t dry_l = (left * (128 - balance)) / 64;
-      int32_t dry_r = (right * balance) / 64;
+      int32_t dry_l = (mix.left * (128 - balance)) / 64;
+      int32_t dry_r = (mix.right * balance) / 64;
 
       int32_t mix_l;
       int32_t mix_r;
@@ -47,8 +47,8 @@ public:
       }
 
       // TODO LOG volume
-      left  = (mix_l * volume) / 128;
-      right = (mix_r * volume) / 128;
+      mix.left  = (mix_l * volume) / 128;
+      mix.right = (mix_r * volume) / 128;
    }
 
    volatile uint8_t balance{64};

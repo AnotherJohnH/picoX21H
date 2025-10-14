@@ -40,11 +40,11 @@ To do...
 This repo uses git sub-modules, so checkout using --recurse to clone all the
 dependent source...
 
-    git clone --recurse https://github.com/AnotherJohnH/picoX21H.git
+    git clone --recurse-submodules https://github.com/AnotherJohnH/picoX21H.git
 
 ore
 
-    git clone --recurse ssh://git@github.com/AnotherJohnH/picoX21H.git
+    git clone --recurse-submodules ssh://git@github.com/AnotherJohnH/picoX21H.git
 
 ### Software dependencies
 
@@ -52,12 +52,13 @@ ore
 + arm-none-eabi-gcc
 + cmake via UNIX make or auto detection of ninja if installed
 + Python3
++ SDL2 (only for native test target)
 
 ### Build
 
 Being developed on MacOS but should build on Linux too.
 
-Indirect build of all supported targets, rpipico and rpipico2 with cmake and make (or ninja)...
+Indirect build for supported targets, rpipico and rpipico2 with cmake and make (or ninja)...
 
     make
 

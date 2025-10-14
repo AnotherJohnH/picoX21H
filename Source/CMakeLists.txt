@@ -3,18 +3,26 @@
 # SPDX-License-Identifier: MIT
 #-------------------------------------------------------------------------------
 
-set(python_path ${CMAKE_CURRENT_SOURCE_DIR}/../Platform/python)
+autogen_py(Table_midi_vol)
+autogen_py(Table_midi_pan)
 
-add_subdirectory(DX21)
 add_subdirectory(hw)
+add_subdirectory(chip)
+add_subdirectory(DX21)
 
 foreach(hw_config ${hw_config_list})
 
    add_executable(picoX21H_${hw_config}
-                  picoX21H.cpp
-                  audio.cpp)
+                  picoX21H.cpp)
+
+   target_include_directories(picoX21H_${hw_config}
+       PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
    target_compile_definitions(picoX21H_${hw_config} PRIVATE HW_${hw_config})
-   target_link_libraries(     picoX21H_${hw_config} PRIVATE DX21 HW)
+
+   target_link_libraries(picoX21H_${hw_config} PRIVATE DX21 HW)
+
+   set_target_properties(picoX21H_${hw_config} PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
 endforeach()

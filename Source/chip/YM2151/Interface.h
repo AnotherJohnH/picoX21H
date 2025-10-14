@@ -7,12 +7,11 @@
 
 #pragma once
 
-#include <unistd.h>
 #include <cstring>
 
-#include "MTL/Gpio.h"
-#include "MTL/chip/PioClock.h"
+#include "Chip.h"
 
+#undef  DBG
 #define DBG if (0) printf
 
 namespace YM2151 {
@@ -39,49 +38,62 @@ enum Param
    AMS_EN, KS
 };
 
-static const uint8_t OP_M1  = 0b0001;
-static const uint8_t OP_C1  = 0b0010;
-static const uint8_t OP_M2  = 0b0100;
-static const uint8_t OP_C2  = 0b1000;
-static const uint8_t OP_ALL = OP_M1 | OP_C1 | OP_M2 | OP_C2;
+static const uint8_t  OP_M1  = 0b0001;
+static const uint8_t  OP_C1  = 0b0010;
+static const uint8_t  OP_M2  = 0b0100;
+static const uint8_t  OP_C2  = 0b1000;
+static const uint8_t  OP_ALL = OP_M1 | OP_C1 | OP_M2 | OP_C2;
+static const unsigned NUM_OP = 4;
 
-
-template <typename PIO_TYPE,
-          unsigned PIN_CTRL4,  // First pin for _IC, A0, _WR and _RD
-          unsigned PIN_CLK_M,  // Pin for CLK_M
-          unsigned PIN_DATA8,  // First pin for D0-D7
-          bool     REV_DATA = false>
-class Interface
+class Interface : public Chip
 {
 public:
-   Interface() = default;
-
-   signed download(unsigned clock_freq_)
+   Interface()
+      : Chip("YM2151", /* num_voices */ 8, /* clock_ticks_per_sample */ 64)
    {
-      return clock.download(clock_freq_, PIN_CLK_M);
    }
 
-   void start()
-   {
-      pio.start(1 << sd);
+//------------------------------------------------------------------------------
+// Implement MIDI::Instrument
 
-      hardReset();
+   //! Play a note
+   void voiceOn(unsigned voice_, uint8_t midi_note_, uint8_t velocity_) override
+   {
+      static const unsigned table[12] = {0, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14};
+
+      midi_note_ -= 1;
+
+      unsigned octave = midi_note_ / 12;
+      unsigned note   = table[midi_note_ % 12];
+
+      setCh<KC>(voice_, (octave << 4) | note);
+
+      writeReg(0x08, (OP_ALL << 3) | voice_);
    }
 
-   //! Initialize bus signals and YM2151 registers uses IC pin
-   void hardReset()
+   //! Stop a note
+   void voiceOff(unsigned voice_, uint8_t velocity_) override
    {
-      data8.setHiZ();
+      writeReg(0x08, voice_);
+   }
 
-      a0  = A0_ADDR;
-      _cs = _rd = _wr = true;
-      wait_ns(T_AH);
+   //! Set channel (0-3) attenuation
+   void voicePressure(unsigned voice_, uint8_t pressure_) override
+   {
+   }
 
-      _ic = false;
-      usleep(T_INIT);
-      _ic = true;
+   virtual void voicePitchBend(unsigned voice_, int16_t value_) override
+   {
+   }
 
+//------------------------------------------------------------------------------
+
+   //! 
+   virtual void hardReset()
+   {
       memset(shadow, 0, sizeof(shadow));
+
+      softReset();
    }
 
    //! Initialize registers to stop all sounds and timer activity
@@ -93,29 +105,32 @@ public:
       set<TIMER_IRQ>(0);  // Disable interrupts
       set<TIMER_CSM>(0);  // Clear CSM
 
-      for(unsigned ch = 0; ch < 8; ch++)
+      for(unsigned voice = 0; voice < num_voices; voice++)
       {
-         for(unsigned op = 0; op < 4; op++)
+         voiceOff(voice, 0);
+
+         // Config channel operators
+         for(uint8_t op = OP_M1; op < OP_ALL; op <<= 1)
          {
-            setOp<EG_D1L>(ch, op, 0xF);
-            setOp<EG_RR>( ch, op, 0x8);
+            setOp<EG_AR>( voice, op, 31);
+            setOp<EG_D1R>(voice, op, 0);
+            setOp<EG_D1L>(voice, op, 0);
+            setOp<EG_D2R>(voice, op, 0);
+            setOp<EG_RR>( voice, op, 15);
+
+            setOp<EG_TL>( voice, op, 10);
+            setOp<MUL>(   voice, op, 1);
          }
+
+         // Config voice
+         setCh<CONECT>(voice, 7);
+         setCh<FB>(    voice, 0);
+         setCh<RL>(    voice, 0b11);
+
+         setCh<KF>(    voice, 0);
+         setCh<AMS>(   voice, 0);
+         setCh<PMS>(   voice, 0);
       }
-
-      for(unsigned ch = 0; ch < 8; ch++)
-      {
-         noteOff(ch);
-      }
-   }
-
-   void noteOn(unsigned channel_, uint8_t op_mask_ = OP_ALL)
-   {
-      writeReg(0x08, (op_mask_ << 3) | channel_);
-   }
-
-   void noteOff(unsigned channel_, uint8_t op_mask_ = OP_ALL)
-   {
-      writeReg(0x08, ((~op_mask_) << 3) | channel_);
    }
 
    //! Set parameter
@@ -206,6 +221,42 @@ public:
       }
    }
 
+   //! Write a register
+   void writeReg(uint8_t addr_, uint8_t data_)
+   {
+      if ((addr_ >= 0x20) && (data_ == shadow[addr_]))
+         return;
+
+      writeBus(A0_ADDR, addr_);
+      writeBus(A0_DATA, data_);
+
+      waitForReady();
+
+      shadow[addr_] = data_;
+
+      DBG("WR %02X => %02X\n", data_, addr_);
+   }
+
+   //! Read a register (expected value not actual)
+   uint8_t readReg(uint8_t addr_) const
+   {
+      return shadow[addr_];
+   }
+
+   void reset() override
+   {
+      for(unsigned v = 0; v < num_voices; v++)
+      {
+         voiceOff(v, 0);
+      }
+   }
+
+   void write(uint16_t addr_, uint8_t data_) override
+   {
+      writeReg(addr_, data_);
+   }
+
+protected:
    //! Write a field in a register
    void writeField(uint8_t  addr_,
                    unsigned ls_bit_,
@@ -221,132 +272,17 @@ public:
       writeReg(addr_, data);
    }
 
-   //! Write a register
-   void writeReg(uint8_t addr_, uint8_t data_)
-   {
-      if ((addr_ >= 0x20) && (data_ == shadow[addr_]))
-         return;
-
-      writeBus(A0_ADDR, addr_);
-      writeBus(A0_DATA, data_);
-
-      unsigned count = 0;
-
-      while((readStatus() & (1<<7)) != 0)
-      {
-         ++count;
-      }
-
-      shadow[addr_] = data_;
-
-      DBG("WR %02X => %02X [%u]\n", data_, addr_, count);
-   }
-
-   uint8_t readStatus()
-   {
-      return readBus(A0_DATA);
-   }
-
-   //! Read a register (expected value not actual)
-   uint8_t readReg(uint8_t addr_) const
-   {
-      return shadow[addr_];
-   }
-
-private:
-   static uint8_t revBits(uint8_t value_)
-   {
-      value_ = ((value_ & 0xF0) >> 4) | ((value_ & 0x0F) << 4);
-      value_ = ((value_ & 0xCC) >> 2) | ((value_ & 0x33) << 2);
-      value_ = ((value_ & 0xAA) >> 1) | ((value_ & 0x55) << 1);
-
-      return value_;
-   }
-
-   //! Wait for at least the given nano-seconds
-   void wait_ns(unsigned nano_seconds_)
-   {
-      // TODO nano sleep for improved performance
-      usleep((nano_seconds_ / 1000) + 1);
-   }
-
    //! Write a byte to the YM2151 bus
-   void writeBus(bool a0_, uint8_t value_)
-   {
-      data8.setOut();
+   virtual void writeBus(bool a0_, uint8_t value_) = 0;
 
-      a0 = a0_;
-      wait_ns(T_AS);
-
-      _cs = _wr = false;
-      wait_ns(T_CW - T_DS);
-
-      if (REV_DATA)
-         data8 = revBits(value_);
-      else
-         data8 = value_;
-
-      wait_ns(T_DS);
-
-      _cs = _wr = true;
-      wait_ns(T_DH);
-
-      data8.setHiZ();
-   }
-
-   //! Read a byte from the YM2151 bus
-   uint8_t readBus(bool a0_)
-   {
-      data8.setIn();
-
-      a0 = a0_;
-      wait_ns(T_AS);
-
-      _cs = _rd = false;
-      wait_ns(T_ACC);
-
-      uint8_t value;
-      if (REV_DATA)
-         value = revBits(data8);
-      else
-         value = data8;
-
-      _cs = _rd = true;
-      wait_ns(T_DH);
-
-      data8.setHiZ();
-
-      return value;
-   }
-
-   static constexpr unsigned T_AS   = 10;    //!< Address setup (ns)
-   static constexpr unsigned T_AH   = 10;    //!< Address hold (ns)
-   static constexpr unsigned T_CW   = 100;   //!< Chip slecet wait (ns)
-   static constexpr unsigned T_DS   = 50;    //!< Data write setup (ns)
-   static constexpr unsigned T_DH   = 10;    //!< Data read/write hold (ns)
-   static constexpr unsigned T_ACC  = 180;   //!< Read data access (ns)
-   static constexpr unsigned T_INIT = 25000; //!< Chip initialisation (ns)
+   //! Wait for YM2151 bus ready
+   virtual void waitForReady() = 0;
 
    static constexpr bool A0_ADDR = false;
    static constexpr bool A0_DATA = true;
 
-   //!< Bi-directional data bus
-   MTL::Gpio::InOut<8, PIN_DATA8> data8;
-
-   //!< Control signals
-   MTL::Gpio::Out<1, PIN_CTRL4+0> _ic; //!< Initial clear
-   MTL::Gpio::Out<1, PIN_CTRL4+1> a0;  //!< 0=>address, 1=>data
-   MTL::Gpio::Out<1, PIN_CTRL4+2> _wr; //!< Write
-   MTL::Gpio::Out<1, PIN_CTRL4+3> _rd; //!< Read
-
-   // MTL::Gpio::Out<1, PIN_CTRL5+4> _cs; //!< Chip select
-   bool _cs; //!< dummy chip select
-
+private:
    uint8_t shadow[256];
-
-   MTL::PioClock<PIO_TYPE> clock{};  //!< Clock out to YM2151
-   PIO_TYPE                pio{};    //!< PIO instance
-   int                     sd{-1};   //!< PIO descriptor
 };
 
 } // namespace YM2151

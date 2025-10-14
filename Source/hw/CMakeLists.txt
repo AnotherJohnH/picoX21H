@@ -11,24 +11,30 @@ if(${PLT_TARGET} STREQUAL rpipico)
    set(hw_config_list
        I2S_DAC
        PWM_DAC
-       PARENT_SCOPE)
+       WAVESHARE_REV2_1
+       CACHE INTERNAL "Host List")
 
-   target_link_libraries(HW INTERFACE TNY MTL TNY)
+   target_link_libraries(HW INTERFACE TNY MTL)
+
+   add_subdirectory(Test)
 
 elseif(${PLT_TARGET} STREQUAL rpipico2)
 
    set(hw_config_list
        I2S_DAC
        PWM_DAC
-       PARENT_SCOPE)
+       WAVESHARE_REV2_1
+       CACHE INTERNAL "Host List")
 
-   target_link_libraries(HW INTERFACE TNY MTL TNY)
+   target_link_libraries(HW INTERFACE TNY MTL)
+
+   add_subdirectory(Test)
 
 elseif(${PLT_TARGET} STREQUAL native)
 
    set(hw_config_list
        NATIVE
-       PARENT_SCOPE)
+       CACHE INTERNAL "Host List")
 
    target_link_libraries(HW INTERFACE PLT STB)
 
