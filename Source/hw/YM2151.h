@@ -30,25 +30,25 @@ class YM2151 : public ::YM2151::Hardware<MTL::Pio0,
 public:
    YM2151()
    {
-      MTL::config.gpio(_IC, "YM2151 /IC");
-      MTL::config.gpio(A0,  "YM2151 A0");
-      MTL::config.gpio(_WR, "YM2151 /WR");
-      MTL::config.gpio(_RD, "YM2151 /RD");
+      MTL::config.gpio(_IC, ">YM2151_3 /IC");
+      MTL::config.gpio(A0,  ">YM2151_4  A0");
+      MTL::config.gpio(_WR, ">YM2151_5 /WR");
+      MTL::config.gpio(_RD, ">YM2151_6 /RD");
 
-      MTL::config.gpio(HW_YM2151_CLK, "YM2151 CLK");
+      MTL::config.gpio(HW_YM2151_CLK, ">YM2151_24 CLK");
 
-      MTL::config.gpio(HW_YM2151_DAC_IN + 0, "YM2151 DAC SD");
-      MTL::config.gpio(HW_YM2151_DAC_IN + 1, "YM2151 DAC CLK");
-      MTL::config.gpio(HW_YM2151_DAC_IN + 2, "YM2151 DAC SAM1");
+      MTL::config.gpio(HW_YM2151_DAC_IN + 0, "<YM2151_21 DAC SD  ");
+      MTL::config.gpio(HW_YM2151_DAC_IN + 1, "<YM2151_23 DAC CLK ");
+      MTL::config.gpio(HW_YM2151_DAC_IN + 2, "<YM2151_20 DAC SAM1");
 
-      MTL::config.gpio(HW_YM2151_DATA8 + 0, "YM2151 D7");
-      MTL::config.gpio(HW_YM2151_DATA8 + 1, "YM2151 D6");
-      MTL::config.gpio(HW_YM2151_DATA8 + 2, "YM2151 D5");
-      MTL::config.gpio(HW_YM2151_DATA8 + 3, "YM2151 D4");
-      MTL::config.gpio(HW_YM2151_DATA8 + 4, "YM2151 D3");
-      MTL::config.gpio(HW_YM2151_DATA8 + 5, "YM2151 D2");
-      MTL::config.gpio(HW_YM2151_DATA8 + 6, "YM2151 D1");
-      MTL::config.gpio(HW_YM2151_DATA8 + 7, "YM2151 D0");
+      MTL::config.gpio(HW_YM2151_DATA8 + 0, "=YM2151_18 D7");
+      MTL::config.gpio(HW_YM2151_DATA8 + 1, "=YM2151_17 D6");
+      MTL::config.gpio(HW_YM2151_DATA8 + 2, "=YM2151_16 D5");
+      MTL::config.gpio(HW_YM2151_DATA8 + 3, "=YM2151_15 D4");
+      MTL::config.gpio(HW_YM2151_DATA8 + 4, "=YM2151_14 D3");
+      MTL::config.gpio(HW_YM2151_DATA8 + 5, "=YM2151_13 D2");
+      MTL::config.gpio(HW_YM2151_DATA8 + 6, "=YM2151_12 D1");
+      MTL::config.gpio(HW_YM2151_DATA8 + 7, "=YM2151_11 D0");
    }
 
    void start(unsigned clock_hz_)

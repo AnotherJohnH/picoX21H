@@ -32,9 +32,9 @@ class Dac
 public:
    Dac(unsigned sample_rate_hz_)
    {
-      MTL::config.gpio(HW_DAC_I2S_SD,       "I2S SD");
-      MTL::config.gpio(HW_DAC_I2S_CLKS,     "I2S SCLK");
-      MTL::config.gpio(HW_DAC_I2S_CLKS + 1, "I2S LRCLK");
+      MTL::config.gpio(HW_DAC_I2S_SD,       ">I2S SD");
+      MTL::config.gpio(HW_DAC_I2S_CLKS,     ">I2S SCLK");
+      MTL::config.gpio(HW_DAC_I2S_CLKS + 1, ">I2S LRCLK");
 
       i2s.download(sample_rate_hz_,
                    HW_DAC_I2S_SD, HW_DAC_I2S_CLKS);
