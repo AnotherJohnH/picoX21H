@@ -234,6 +234,29 @@ static NOINLINE void testUsb(Phase phase_)
    }
 }
 
+//--- TEST YM2151 -------------------------------------------------------------
+
+static NOINLINE void testYM2151(Phase phase_)
+{
+   static hw::YM2151<> ym2151{};
+
+   switch(phase_)
+   {
+   case DECL:
+      break;
+
+   case INFO:
+      printf("YM2151: Only build and declare for now\n");
+      break;
+
+   case START:
+      break;
+
+   case RUN:
+      break;
+   }
+}
+
 
 //------------------------------------------------------------------------------
 
@@ -244,6 +267,7 @@ static void test(Phase phase_)
    if (1) testDAC(phase_);
    if (1) testPhysMIDI(phase_);
    if (1) testUsb(phase_);
+   if (1) testYM2151(phase_);
 }
 
 //------------------------------------------------------------------------------

@@ -11,7 +11,7 @@
 #include "STB/MIDIInstrument.h"
 
 #include "DX21Audio.h"
-#include "hw/YM2151.h"
+#include "chip/YM2151/Hardware.h"
 
 #include "SysEx.h"
 #include "Table_dx21_rom.h"
@@ -44,8 +44,8 @@ public:
       }
    }
 
-   hw::YM2151 ym2151;
-   Audio      audio{};
+   YM2151::Hardware ym2151;
+   Audio            audio{};
 
 private:
    // MIDI::Instrument implementation
