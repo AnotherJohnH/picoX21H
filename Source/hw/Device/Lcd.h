@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include "hw/Config.h"
-
 #if defined(HW_LCD_I2C)
 
 #if defined(HW_LCD_I2C_BRIDGE)

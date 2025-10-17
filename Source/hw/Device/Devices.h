@@ -3,10 +3,13 @@
 // SPDX-License-Identifier: MIT
 //-------------------------------------------------------------------------------
 
-// \brief Hardware interfaces
+// \brief All available device drivers
 
 #pragma once
 
-#include "Config.h"
-
-#include "hw/Device/Devices.h"
+#include "hw/Device/Dac.h"
+#include "hw/Device/PhysMidi.h"
+#include "hw/Device/Lcd.h"
+#include "hw/Device/Led.h"
+#include "hw/Device/Usb.h"
+#include "hw/Device/YM2151.h"

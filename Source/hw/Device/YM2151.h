@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include "hw/Config.h"
-
 #if defined(HW_YM2151)
 
 #include "MTL/MTL.h"

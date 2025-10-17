@@ -8,7 +8,6 @@
 #pragma once
 
 #include "STB/MIDIInterface.h"
-#include "hw/Config.h"
 
 #if defined(HW_USB_DEVICE)
 #include "MTL/USBMidiInterface.h"

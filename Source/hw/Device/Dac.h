@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include "hw/Config.h"
-
 #if defined(HW_DAC_I2S) || defined(HW_DAC_I2S_WAVESHARE_REV2_1)
 #include "MTL/chip/PioI2S_S16.h"
 

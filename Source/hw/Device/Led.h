@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include "hw/Config.h"
-
 #if defined(HW_LED)
 #include "MTL/Pins.h"
 #include "MTL/Digital.h"
