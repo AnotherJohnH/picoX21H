@@ -11,6 +11,8 @@ project(picoX21H
 
 include(CTest)
 
+set(HARDWARE picoX21H)
+
 add_subdirectory(Platform)
 add_subdirectory(Hardware)
 add_subdirectory(Source)

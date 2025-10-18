@@ -7,7 +7,7 @@
 
 #include <cstdio>
 
-#include "Hardware/picoX21H.h"
+#include "Hardware/picoX21H/Config.h"
 
 #include "Dac.h"
 #include "DX21/DX21Synth.h"
@@ -37,7 +37,7 @@ static hw::PhysMidi phys_midi{};
 
 #if defined(HW_USB_DEVICE)
 
-static hw::USBDevice usb{0x91C0, "picoX21H", file_portal};
+static hw::UsbFileMidi usb{0x91C0, "picoX21H", file_portal};
 
 extern "C" void IRQ_USBCTRL() { usb.irq(); }
 

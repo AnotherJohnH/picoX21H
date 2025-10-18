@@ -3,13 +3,10 @@
 # SPDX-License-Identifier: MIT
 #-------------------------------------------------------------------------------
 
-autogen_py(Table_midi_vol)
-autogen_py(Table_midi_pan)
-
 add_subdirectory(chip)
 add_subdirectory(DX21)
 
-foreach(hw_config ${hw_config_list})
+foreach(hw_config ${hw_picoX21H_config_list})
 
    add_executable(picoX21H_${hw_config}
                   picoX21H.cpp)

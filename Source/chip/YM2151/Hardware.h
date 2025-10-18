@@ -9,7 +9,7 @@
 
 #if defined(HW_YM2151)
 #include "YM2151/Interface.h"
-#include "Hardware/picoX21H.h"
+#include "Hardware/picoX21H/Config.h"
 #else
 #include "YM2151/Emulator.h"
 #endif
