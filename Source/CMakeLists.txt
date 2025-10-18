@@ -6,7 +6,6 @@
 autogen_py(Table_midi_vol)
 autogen_py(Table_midi_pan)
 
-add_subdirectory(hw)
 add_subdirectory(chip)
 add_subdirectory(DX21)
 
