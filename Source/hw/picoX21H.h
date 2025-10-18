@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 //-------------------------------------------------------------------------------
 
-// \brief Target hardware configurations
+// \brief picoX21H hardware configurations
 
 #pragma once
 
@@ -98,3 +98,7 @@
 #error "Target hardware not specified"
 
 #endif
+
+//==============================================================================
+
+#include "hw/Device/Devices.h"

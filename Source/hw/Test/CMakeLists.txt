@@ -9,7 +9,7 @@ foreach(hw_config ${hw_config_list})
 
    add_executable(test_hw_${hw_config}
       Table_sine.cpp
-      test_hw.cpp)
+      test_picoX21H.cpp)
 
    target_include_directories(test_hw_${hw_config}
       PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
