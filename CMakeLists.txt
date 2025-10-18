@@ -12,7 +12,7 @@ project(picoX21H
 include(CTest)
 
 add_subdirectory(Platform)
-add_subdirectory(hw)
+add_subdirectory(Hardware)
 add_subdirectory(Source)
 
 if(${PLT_TARGET} STREQUAL rpipico OR ${PLT_TARGET} STREQUAL rpipico2)

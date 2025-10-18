@@ -7,7 +7,7 @@
 
 #include <cstdio>
 
-#include "hw/picoX21H.h"
+#include "Hardware/picoX21H.h"
 
 #include "Dac.h"
 #include "DX21/DX21Synth.h"
