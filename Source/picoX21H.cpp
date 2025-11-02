@@ -93,8 +93,7 @@ void startAudio()
 int main()
 {
    // Clear screen and cursor to home
-   printf("\e[2J");
-   printf("\e[1,1H");
+   printf("\033[2J\033[H");
 
    printf("\n");
 
