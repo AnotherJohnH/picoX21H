@@ -44,7 +44,7 @@ dependent source...
 
     git clone --recurse-submodules https://github.com/AnotherJohnH/picoX21H.git
 
-ore
+or
 
     git clone --recurse-submodules ssh://git@github.com/AnotherJohnH/picoX21H.git
 
