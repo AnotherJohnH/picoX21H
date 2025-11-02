@@ -8,17 +8,18 @@
 #include <cstdio>
 
 #include "Hardware/picoX21H/Config.h"
+#include "Hardware/FilePortal.h"
 
 #include "Dac.h"
 #include "DX21/DX21Synth.h"
 #include "SynthIO.h"
-#include "FilePortal.h"
 
 // -----------------------------------------------------------------------------
 
 static const bool MIDI_DEBUG = false;
 
-static FilePortal  file_portal{"picoX21H"};
+static FilePortal  file_portal{"picoX21H",
+                               "https://github.com/AnotherJohnH/picoX21H/"};
 static SynthIO     synth_io{};
 static DX21::Synth dx21_synth{synth_io};
 
@@ -35,29 +36,20 @@ static hw::PhysMidi phys_midi{};
 
 // --- USB MIDI ----------------------------------------------------------------
 
-#if defined(HW_USB_DEVICE)
-
 static hw::UsbFileMidi usb{0x91C0, "picoX21H", file_portal};
 
 extern "C" void IRQ_USBCTRL() { usb.irq(); }
 
-#endif
-
 
 // --- 16x2 LCD display --------------------------------------------------------
 
-#if not defined(HW_LCD_NONE)
-
 static hw::Lcd lcd{};
 
-#endif
 
 void SynthIO::displayLCD(unsigned row, const char* text)
 {
-#if not defined(HW_LCD_NONE)
    lcd.move(0, row);
    lcd.print(text);
-#endif
 }
 
 
@@ -106,14 +98,12 @@ int main()
 
    printf("\n");
 
-   puts(file_portal.genREADME());
+   puts(file_portal.addREADME("picoX21H"));
 
    startAudio();
 
-#if defined(HW_USB_DEVICE)
    usb.setDebug(MIDI_DEBUG);
    usb.attachInstrument(1, dx21_synth);
-#endif
 
    phys_midi.setDebug(MIDI_DEBUG);
    phys_midi.attachInstrument(1, dx21_synth);
@@ -122,9 +112,7 @@ int main()
    {
       phys_midi.tick();
 
-#if defined(HW_USB_DEVICE)
       usb.tick();
-#endif
 
       led = dx21_synth.isAnyVoiceOn();
    }
